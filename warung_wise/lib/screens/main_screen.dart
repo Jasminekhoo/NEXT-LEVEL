@@ -4,7 +4,7 @@ import 'dashboard_page.dart';
 import 'ai_analysis_page.dart';
 import 'report_page.dart';
 
-class MainScreen extends StatefulWidget {  //ini navigation bar ya
+class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
 
   @override
@@ -14,23 +14,34 @@ class MainScreen extends StatefulWidget {  //ini navigation bar ya
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
 
-  // 引用我们刚才分开写的三个页面
-  final List<Widget> _pages = [
-    const DashboardPage(), 
-    const AiAnalysisPage(),
-    const ReportPage(),    
-  ];
-
+  // 1. 标准的点击底部 Tab 切换
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
     });
   }
 
+  // 2. 🔥 新增：专门给 Dashboard 用的“跳转到 AI 页”函数
+  void _goToAiPage() {
+    setState(() {
+      _selectedIndex = 1; // 1 代表第二个页面 (AI Scan)
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    // 3. 🔥 把页面列表搬到 build 里面来
+    // 这样我们才能把 _goToAiPage 这个函数传给 DashboardPage
+    final List<Widget> pages = [
+      DashboardPage(onScanTap: _goToAiPage), // <--- 这里把“钥匙”传给 Dashboard
+      const AiAnalysisPage(),
+      const ReportPage(),
+    ];
+
     return Scaffold(
-      body: _pages[_selectedIndex], // 显示当前选中的页面
+      // 使用上面的局部变量 pages
+      body: pages[_selectedIndex], 
+      
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           boxShadow: [

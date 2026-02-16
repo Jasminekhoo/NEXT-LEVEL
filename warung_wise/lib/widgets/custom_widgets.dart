@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-// 巨大的卡片按钮 (首页用)
 class BigCardButton extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -54,7 +53,7 @@ class BigCardButton extends StatelessWidget {
   }
 }
 
-// 交易列表项 (首页用)
+// urusniaga terkini（homepage bottom）
 class TransactionTile extends StatelessWidget {
   final String title;
   final String amount;
@@ -86,25 +85,26 @@ class TransactionTile extends StatelessWidget {
         ],
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            children: [
-              Icon(
-                isIncome ? Icons.trending_up : Icons.trending_down,
-                color: isIncome ? successColor : warningColor,
-                size: 30,
-              ),
-              const SizedBox(width: 15),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
+          Icon(
+            isIncome ? Icons.trending_up : Icons.trending_down,
+            color: isIncome ? successColor : warningColor,
+            size: 30,
           ),
+          const SizedBox(width: 15),
+          Expanded(
+            child: Text(
+              title,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+              overflow: TextOverflow.ellipsis, 
+              maxLines: 1, 
+            ),
+          ),
+
+          const SizedBox(width: 10), 
           Text(
             amount,
             style: TextStyle(

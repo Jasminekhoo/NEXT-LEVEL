@@ -1,17 +1,9 @@
-// lib/screens/dashboard_page.dart
-
 import 'package:flutter/material.dart';
 import '../app_colors.dart';
 import '../widgets/custom_widgets.dart';
 
 class DashboardPage extends StatelessWidget {
-  // 1. 增加这个参数：接收外部传进来的跳转函数
-  final VoidCallback onScanTap; 
-
-  const DashboardPage({
-    super.key, 
-    required this.onScanTap, // 2. 构造函数里要求传入
-  });
+  const DashboardPage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -33,14 +25,13 @@ class DashboardPage extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // 头像 (记得找一张 Mak Cik 的照片放 Assets)
+                    // 头像
                     Container(
                       padding: const EdgeInsets.all(2),
                       decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
                       child: const CircleAvatar(
                         radius: 28,
-                        // 这里暂时用网络图，建议换成本地图片 'assets/makcik.jpg'
-                        backgroundImage: NetworkImage('https://i.pravatar.cc/150?u=a042581f4e29026024d'), 
+                        backgroundImage: NetworkImage('https://i.pravatar.cc/150?img=29'), 
                       ),
                     ),
                     // 铃铛
@@ -79,8 +70,10 @@ class DashboardPage extends StatelessWidget {
                     label: "Snap Resit",
                     color: Colors.white,
                     textColor: AppColors.jungleGreen,
-                    // 3. 这里调用传入的函数，而不是只打印 print
-                    onTap: onScanTap, 
+                    onTap: () {
+                      // 这里可以通过 Parent Widget 切换 Tab，或者跳转
+                      print("Navigating to Scan...");
+                    },
                   ),
                 ),
                 const SizedBox(width: 15),
@@ -90,9 +83,7 @@ class DashboardPage extends StatelessWidget {
                     label: "Cakap Jual",
                     color: AppColors.lightOrange,
                     textColor: Colors.black,
-                    onTap: () {
-                        // 语音记账逻辑 (暂时留空)
-                    },
+                    onTap: () {},
                   ),
                 ),
               ],
