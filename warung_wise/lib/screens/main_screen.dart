@@ -1,4 +1,7 @@
+// lib/screens/main_screen.dart
+
 import 'package:flutter/material.dart';
+import 'dart:async'; // 👈 必须加这行，为了用 Timer
 import '../app_colors.dart';
 import 'dashboard_page.dart';
 import 'ai_analysis_page.dart';
@@ -14,34 +17,74 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
 
-  // 1. 标准的点击底部 Tab 切换
+  // 1. 普通的底部 Tab 切换
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
     });
   }
 
-  // 2. 🔥 新增：专门给 Dashboard 用的“跳转到 AI 页”函数
-  void _goToAiPage() {
-    setState(() {
-      _selectedIndex = 1; // 1 代表第二个页面 (AI Scan)
+  // 🔥 2. 高级版：模拟 AI 扫描过程 (Loading -> 跳转)
+  void _startScanProcess() {
+    // A. 弹出 Loading 对话框
+    showDialog(
+      context: context,
+      barrierDismissible: false, // 用户不能点背景关闭
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // 旋转的圈圈
+                const CircularProgressIndicator(
+                  color: AppColors.jungleGreen, 
+                  strokeWidth: 6,
+                ),
+                const SizedBox(height: 25),
+                // 提示文字
+                const Text(
+                  "Gemini sedang menganalisa...", 
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.jungleGreen),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  "Mengira kos telur & ayam...", 
+                  style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    // B. 延迟 2秒 后跳转
+    Timer(const Duration(seconds: 2), () {
+      // 1. 关掉弹窗
+      Navigator.of(context).pop();
+      
+      // 2. 切换到 AI 页面
+      setState(() {
+        _selectedIndex = 1; 
+      });
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    // 3. 🔥 把页面列表搬到 build 里面来
-    // 这样我们才能把 _goToAiPage 这个函数传给 DashboardPage
+    // 3. 把 _startScanProcess 传给 Dashboard
     final List<Widget> pages = [
-      DashboardPage(onScanTap: _goToAiPage), // <--- 这里把“钥匙”传给 Dashboard
+      DashboardPage(onScanTap: _startScanProcess), // <--- 这里用新的函数
       const AiAnalysisPage(),
       const ReportPage(),
     ];
 
     return Scaffold(
-      // 使用上面的局部变量 pages
-      body: pages[_selectedIndex], 
-      
+      body: pages[_selectedIndex],
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           boxShadow: [
