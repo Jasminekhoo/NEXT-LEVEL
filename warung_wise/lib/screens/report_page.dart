@@ -36,8 +36,8 @@ class ReportPage extends StatelessWidget {
             _buildFinanceSummary(),
             const SizedBox(height: 30),
 
-            // 4. 趋势图表 (fl_chart)
-            _buildTrendChart(),
+            // 4. ✨✨ 全新：双柱状图 (Income vs Expense，带切换) ✨✨
+            const IncomeExpenseChartCard(),
             const SizedBox(height: 40),
 
             // 5. ✨✨ 交互式贷款模拟器 ✨✨
@@ -48,7 +48,7 @@ class ReportPage extends StatelessWidget {
             _buildTekunCard(),
             const SizedBox(height: 30),
 
-            // 7. 下载按钮 (✅ 修复：加上了 context)
+            // 7. 下载按钮 (跳转到 PDF)
             _buildDownloadButton(context),
             const SizedBox(height: 20),
           ],
@@ -138,48 +138,6 @@ class ReportPage extends StatelessWidget {
     );
   }
 
-  // --- 模块 4: 趋势折线图 ---
-  Widget _buildTrendChart() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text("Trend Untung Bersih (7 Hari)", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 15),
-        Container(
-          height: 200,
-          width: double.infinity,
-          padding: const EdgeInsets.only(right: 20, top: 10, bottom: 10),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 10)],
-          ),
-          child: LineChart(
-            LineChartData(
-              gridData: const FlGridData(show: false),
-              titlesData: const FlTitlesData(show: false),
-              borderData: FlBorderData(show: false),
-              lineBarsData: [
-                LineChartBarData(
-                  spots: [
-                    const FlSpot(0, 1), const FlSpot(1, 1.5), const FlSpot(2, 1.2),
-                    const FlSpot(3, 1.8), const FlSpot(4, 1.6), const FlSpot(5, 2.2), const FlSpot(6, 2.5),
-                  ],
-                  isCurved: true,
-                  color: AppColors.jungleGreen,
-                  barWidth: 4,
-                  isStrokeCapRound: true,
-                  dotData: const FlDotData(show: false),
-                  belowBarData: BarAreaData(show: true, color: AppColors.jungleGreen.withOpacity(0.1)),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
   // --- 模块 6: TEKUN 选项 ---
   Widget _buildTekunCard() {
     return Container(
@@ -211,7 +169,7 @@ class ReportPage extends StatelessWidget {
     );
   }
 
-  // --- 模块 7: 下载按钮 (✅ 修复：移回了正确的类里) ---
+  // --- 模块 7: 下载按钮 ---
   Widget _buildDownloadButton(BuildContext context) { 
     return SizedBox(
       width: double.infinity,
@@ -236,7 +194,185 @@ class ReportPage extends StatelessWidget {
 }
 
 // ==========================================
-// ✨ 新功能：交互式贷款模拟器 (StatefulWidget)
+// ✨ 新模块：Income vs Expense 双柱状图 (StatefulWidget)
+// ==========================================
+class IncomeExpenseChartCard extends StatefulWidget {
+  const IncomeExpenseChartCard({super.key});
+
+  @override
+  State<IncomeExpenseChartCard> createState() => _IncomeExpenseChartCardState();
+}
+
+class _IncomeExpenseChartCardState extends State<IncomeExpenseChartCard> {
+  bool isMonthly = true; 
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 10)],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text("Prestasi Jualan", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.deepTeal)),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  children: [
+                    _buildToggleButton("Bulan", true),
+                    _buildToggleButton("Tahun", false),
+                  ],
+                ),
+              )
+            ],
+          ),
+          const SizedBox(height: 15),
+
+          Row(
+            children: [
+              Container(width: 12, height: 12, decoration: BoxDecoration(color: AppColors.successGreen, borderRadius: BorderRadius.circular(3))),
+              const SizedBox(width: 6),
+              const Text("Pendapatan", style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500)),
+              const SizedBox(width: 20),
+              Container(width: 12, height: 12, decoration: BoxDecoration(color: AppColors.warningRed, borderRadius: BorderRadius.circular(3))),
+              const SizedBox(width: 6),
+              const Text("Perbelanjaan", style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500)),
+            ],
+          ),
+          const SizedBox(height: 30),
+
+          SizedBox(
+            height: 200,
+            child: BarChart(
+              BarChartData(
+                alignment: BarChartAlignment.spaceAround,
+                maxY: isMonthly ? 6000 : 60000, 
+                barTouchData: BarTouchData(enabled: false),
+                titlesData: FlTitlesData(
+                  show: true,
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      getTitlesWidget: (double value, TitleMeta meta) {
+                        const style = TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 11);
+                        Widget text;
+                        if (isMonthly) {
+                          switch (value.toInt()) {
+                            case 0: text = const Text('Jan', style: style); break;
+                            case 1: text = const Text('Feb', style: style); break;
+                            case 2: text = const Text('Mac', style: style); break;
+                            case 3: text = const Text('Apr', style: style); break;
+                            case 4: text = const Text('Mei', style: style); break;
+                            case 5: text = const Text('Jun', style: style); break;
+                            default: text = const Text('', style: style); break;
+                          }
+                        } else {
+                          switch (value.toInt()) {
+                            case 0: text = const Text('2022', style: style); break;
+                            case 1: text = const Text('2023', style: style); break;
+                            case 2: text = const Text('2024', style: style); break;
+                            case 3: text = const Text('2025', style: style); break;
+                            case 4: text = const Text('2026', style: style); break;
+                            default: text = const Text('', style: style); break;
+                          }
+                        }
+                        return SideTitleWidget(axisSide: meta.axisSide, child: text);
+                      },
+                    ),
+                  ),
+                  leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                ),
+                gridData: FlGridData(
+                  show: true,
+                  drawVerticalLine: false,
+                  getDrawingHorizontalLine: (value) => FlLine(color: Colors.grey.shade200, strokeWidth: 1),
+                ),
+                borderData: FlBorderData(show: false),
+                barGroups: isMonthly ? _getMonthlyData() : _getYearlyData(),
+              ),
+              swapAnimationDuration: const Duration(milliseconds: 350), 
+              swapAnimationCurve: Curves.easeInOut,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildToggleButton(String title, bool isMonthButton) {
+    bool isActive = isMonthly == isMonthButton;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          isMonthly = isMonthButton; 
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isActive ? AppColors.jungleGreen : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Text(
+          title,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: isActive ? Colors.white : Colors.grey.shade600,
+          ),
+        ),
+      ),
+    );
+  }
+
+  List<BarChartGroupData> _getMonthlyData() {
+    return [
+      _makeGroupData(0, 4000, 2500),
+      _makeGroupData(1, 4500, 2800),
+      _makeGroupData(2, 3800, 3000), 
+      _makeGroupData(3, 5000, 2600),
+      _makeGroupData(4, 5200, 2700),
+      _makeGroupData(5, 5800, 2900),
+    ];
+  }
+
+  List<BarChartGroupData> _getYearlyData() {
+    return [
+      _makeGroupData(0, 35000, 20000),
+      _makeGroupData(1, 42000, 24000),
+      _makeGroupData(2, 40000, 25000),
+      _makeGroupData(3, 52000, 28000),
+      _makeGroupData(4, 58000, 31000),
+    ];
+  }
+
+  BarChartGroupData _makeGroupData(int x, double income, double expense) {
+    return BarChartGroupData(
+      barsSpace: 4,
+      x: x,
+      barRods: [
+        BarChartRodData(toY: income, color: AppColors.successGreen, width: 10, borderRadius: const BorderRadius.only(topLeft: Radius.circular(3), topRight: Radius.circular(3))),
+        BarChartRodData(toY: expense, color: AppColors.warningRed, width: 10, borderRadius: const BorderRadius.only(topLeft: Radius.circular(3), topRight: Radius.circular(3))),
+      ],
+    );
+  }
+}
+
+// ==========================================
+// ✨ 模块：交互式贷款模拟器 (StatefulWidget)
 // ==========================================
 class LoanSimulatorCard extends StatefulWidget {
   const LoanSimulatorCard({super.key});
