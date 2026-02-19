@@ -36,19 +36,23 @@ class ReportPage extends StatelessWidget {
             _buildFinanceSummary(),
             const SizedBox(height: 30),
 
-            // 4. ✨✨ 全新：双柱状图 (Income vs Expense，带切换) ✨✨
+            // 4. ✨✨ 新增：AI 支出分析饼图 (可互动) ✨✨
+            const ExpensePieChartCard(),
+            const SizedBox(height: 30),
+
+            // 5. 双柱状图 (Income vs Expense)
             const IncomeExpenseChartCard(),
             const SizedBox(height: 40),
 
-            // 5. ✨✨ 交互式贷款模拟器 ✨✨
+            // 6. 交互式贷款模拟器
             const LoanSimulatorCard(),
             const SizedBox(height: 40),
 
-            // 6. 贷款选项 (TEKUN)
+            // 7. 贷款选项 (TEKUN)
             _buildTekunCard(),
             const SizedBox(height: 30),
 
-            // 7. 下载按钮 (跳转到 PDF)
+            // 8. 下载按钮 (跳转到 PDF)
             _buildDownloadButton(context),
             const SizedBox(height: 20),
           ],
@@ -138,7 +142,7 @@ class ReportPage extends StatelessWidget {
     );
   }
 
-  // --- 模块 6: TEKUN 选项 ---
+  // --- 模块 7: TEKUN 选项 ---
   Widget _buildTekunCard() {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -169,7 +173,7 @@ class ReportPage extends StatelessWidget {
     );
   }
 
-  // --- 模块 7: 下载按钮 ---
+  // --- 模块 8: 下载按钮 ---
   Widget _buildDownloadButton(BuildContext context) { 
     return SizedBox(
       width: double.infinity,
@@ -194,7 +198,143 @@ class ReportPage extends StatelessWidget {
 }
 
 // ==========================================
-// ✨ 新模块：Income vs Expense 双柱状图 (StatefulWidget)
+// ✨ 模块：AI 支出分析饼图 (StatefulWidget)
+// ==========================================
+class ExpensePieChartCard extends StatefulWidget {
+  const ExpensePieChartCard({super.key});
+
+  @override
+  State<ExpensePieChartCard> createState() => _ExpensePieChartCardState();
+}
+
+class _ExpensePieChartCardState extends State<ExpensePieChartCard> {
+  int touchedIndex = -1; 
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10)],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text("Pecahan Perbelanjaan (AI)", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.deepTeal)),
+          const SizedBox(height: 5),
+          const Text("Klik pada carta untuk butiran lanjut", style: TextStyle(color: Colors.grey, fontSize: 12)),
+          const SizedBox(height: 30),
+          
+          SizedBox(
+            height: 200,
+            child: PieChart(
+              PieChartData(
+                pieTouchData: PieTouchData(
+                  touchCallback: (FlTouchEvent event, pieTouchResponse) {
+                    setState(() {
+                      if (!event.isInterestedForInteractions || pieTouchResponse == null || pieTouchResponse.touchedSection == null) {
+                        touchedIndex = -1;
+                        return;
+                      }
+                      touchedIndex = pieTouchResponse.touchedSection!.touchedSectionIndex;
+                    });
+                  },
+                ),
+                borderData: FlBorderData(show: false),
+                sectionsSpace: 2, 
+                centerSpaceRadius: 40, 
+                sections: showingSections(),
+              ),
+            ),
+          ),
+          
+          const SizedBox(height: 30),
+          
+          Column(
+            children: [
+              _buildLegend(color: AppColors.warningRed, text: 'Bahan Mentah (Ayam, Nasi, dll)', percentage: '60%'),
+              const SizedBox(height: 8),
+              _buildLegend(color: AppColors.lightOrange, text: 'Sewa Tapak & Utiliti', percentage: '25%'),
+              const SizedBox(height: 8),
+              _buildLegend(color: AppColors.deepTeal, text: 'Lain-lain (Minyak Motor, Plastik)', percentage: '15%'),
+            ],
+          ),
+          
+          const Divider(height: 30),
+          
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.lightbulb, color: AppColors.lightOrange, size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  "Tinjauan AI: Kos Bahan Mentah anda meningkat 5% minggu ini. Pertimbangkan untuk borong ayam dari Pembekal X untuk lebih penjimatan.",
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade700, fontStyle: FontStyle.italic),
+                ),
+              ),
+            ],
+          )
+        ],
+      ),
+    );
+  }
+
+  List<PieChartSectionData> showingSections() {
+    return List.generate(3, (i) {
+      final isTouched = i == touchedIndex;
+      final fontSize = isTouched ? 18.0 : 14.0;
+      final radius = isTouched ? 60.0 : 50.0; 
+      const shadows = [Shadow(color: Colors.black26, blurRadius: 2)];
+
+      switch (i) {
+        case 0:
+          return PieChartSectionData(
+            color: AppColors.warningRed,
+            value: 60,
+            title: '60%',
+            radius: radius,
+            titleStyle: TextStyle(fontSize: fontSize, fontWeight: FontWeight.bold, color: Colors.white, shadows: shadows),
+          );
+        case 1:
+          return PieChartSectionData(
+            color: AppColors.lightOrange,
+            value: 25,
+            title: '25%',
+            radius: radius,
+            titleStyle: TextStyle(fontSize: fontSize, fontWeight: FontWeight.bold, color: Colors.white, shadows: shadows),
+          );
+        case 2:
+          return PieChartSectionData(
+            color: AppColors.deepTeal,
+            value: 15,
+            title: '15%',
+            radius: radius,
+            titleStyle: TextStyle(fontSize: fontSize, fontWeight: FontWeight.bold, color: Colors.white, shadows: shadows),
+          );
+        default:
+          throw Error();
+      }
+    });
+  }
+
+  Widget _buildLegend({required Color color, required String text, required String percentage}) {
+    return Row(
+      children: [
+        Container(width: 12, height: 12, decoration: BoxDecoration(shape: BoxShape.circle, color: color)),
+        const SizedBox(width: 8),
+        Expanded(child: Text(text, style: const TextStyle(fontSize: 13, color: Colors.grey))),
+        Text(percentage, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+      ],
+    );
+  }
+}
+
+// ==========================================
+// ✨ 模块：Income vs Expense 双柱状图 (StatefulWidget)
 // ==========================================
 class IncomeExpenseChartCard extends StatefulWidget {
   const IncomeExpenseChartCard({super.key});
