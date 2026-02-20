@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "782204109800",
+    "project_id": "warung-wise",
+    "storage_bucket": "warung-wise.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:782204109800:android:569f9df31b45eec1829a5d",
+        "android_client_info": {
+          "package_name": "com.example.warung_wise"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCVRQizgiezqs7esCffoq_nZocGj-VoWvg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
