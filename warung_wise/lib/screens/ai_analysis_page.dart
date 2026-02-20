@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../app_colors.dart';
 import '../models/price_record.dart';
+import '../models/extracted_item.dart';
 import '../services/price_service_csv.dart';
 
 class AiAnalysisPage extends StatefulWidget {
@@ -39,9 +41,92 @@ class _AiAnalysisPageState extends State<AiAnalysisPage>
   }
   return grouped;
   }
+  List<ExtractedItem> _extractedItems = [];
+  bool _isExtracting = true;
+  bool _isLoading = true;
+  bool _isConfirmed = false; 
+  final TextEditingController _newItemController = TextEditingController();
+  DateTime _selectedDate = DateTime.now();
 
-  final double scanningHeight = 220;
+  // ===================== Loading Dialog =====================
+  final ValueNotifier<String> _loadingMessage = ValueNotifier("Memuatkan resit...");
 
+  Future<void> _showLoadingDialog() async {
+  showDialog(
+    context: context,
+    barrierDismissible: false, // 用户无法点击外部关闭
+    builder: (_) => WillPopScope(
+      onWillPop: () async => false, // 禁止返回键关闭
+      child: Material(
+        color: Colors.black26, // 半透明背景，突出卡片
+        child: Center(
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            width: 220,
+            decoration: BoxDecoration(
+              color: AppColors.offWhite, // 卡片浅色背景
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black26,
+                  blurRadius: 8,
+                  offset: Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                RotationTransition(
+                  turns: _controller,
+                  child: Icon(Icons.sync, size: 50, color: AppColors.jungleGreen),
+                ),
+                const SizedBox(height: 16),
+                ValueListenableBuilder<String>(
+                  valueListenable: _loadingMessage,
+                  builder: (_, value, __) => Text(
+                    value,
+                    style: TextStyle(
+                      color: AppColors.jungleGreen,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(6),
+                  child: SizedBox(
+                    height: 6,
+                    child: LinearProgressIndicator(
+                      color: AppColors.jungleGreen,
+                      backgroundColor: Colors.black12,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+// 更新 loading 文字
+void _updateLoadingMessage(String msg) {
+  _loadingMessage.value = msg;
+}
+
+// 隐藏 dialog
+Future<void> _hideLoadingDialog() async {
+  if (Navigator.canPop(context)) {
+    Navigator.pop(context);
+  }
+}
+
+  // ===================== initState =====================
   @override
   void initState() {
     super.initState();
@@ -50,13 +135,83 @@ class _AiAnalysisPageState extends State<AiAnalysisPage>
       vsync: this,
     )..repeat(reverse: true);
 
-    _loadData();
+    Future.microtask(() async {
+      await _showLoadingDialog();
+      _updateLoadingMessage("Memuatkan resit...");
+      await _startAutoExtraction();
+
+      _updateLoadingMessage("Memuat turun harga...");
+      await _loadData();
+
+      await _hideLoadingDialog();
+    });
   }
 
-  Future<void> _loadData() async {
-  try {
-    final data = await _priceService.getLatestPrices();
+  @override
+  void dispose() {
+    _controller.dispose();
+    _newItemController.dispose();
+    super.dispose();
+  }
 
+  // ===================== 收据提取 =====================
+  Future<void> _startAutoExtraction() async {
+    setState(() => _isExtracting = true);
+
+    await Future.delayed(const Duration(seconds: 2));
+
+    final today = DateTime.now();
+    final mockData = [
+      ExtractedItem(name: "Beras 5kg", price: "RM 18.50", date: today),
+      ExtractedItem(name: "Ayam 1kg", price: "RM 9.90", date: today),
+      ExtractedItem(name: "Telur Gred A", price: "RM 12.00", date: today),
+      ExtractedItem(name: "Minyak Masak", price: "RM 6.80", date: today),
+    ];
+
+    final newItems = mockData
+        .where((item) =>
+            !_extractedItems.any((e) =>
+                e.name == item.name &&
+                e.date.year == item.date.year &&
+                e.date.month == item.date.month &&
+                e.date.day == item.date.day))
+        .toList();
+
+    if (!mounted) return;
+
+    setState(() {
+      _extractedItems.addAll(newItems);
+      _isExtracting = false;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Resit berjaya diproses ✅")),
+    );
+  }
+
+  // ===================== 加载价格数据 =====================
+  Future<void> _loadData() async {
+    setState(() => _isLoading = true);
+
+    try {
+      final data = await _priceService.getLatestPrices();
+      final processed = await compute(_processPriceDataSync, data);
+
+      if (!mounted) return;
+
+      setState(() {
+        _apiPrices = processed;
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (mounted) setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Load data error: $e")),
+      );
+    }
+  }
+
+  static List<PriceRecord> _processPriceDataSync(List<PriceRecord> data) {
     final cutoff = DateTime.now().subtract(const Duration(days: 90));
     List<PriceRecord> processed = [];
 
@@ -69,8 +224,7 @@ class _AiAnalysisPageState extends State<AiAnalysisPage>
       }
 
       if (lastDate == null || lastDate.isBefore(cutoff)) {
-        // 没过去三个月数据 → AI 价格
-        double aiPrice = await getAiSuggestedPrice(record.itemName, record.oldPrice);
+        double aiPrice = record.oldPrice > 0 ? record.oldPrice * 1.2 : 3.50;
         processed.add(PriceRecord(
           itemName: record.itemName,
           oldPrice: 0,
@@ -78,7 +232,7 @@ class _AiAnalysisPageState extends State<AiAnalysisPage>
           history: [],
           unit: record.unit,
           date: "",
-          category: record.category,
+          category: record.category.isEmpty ? "Umum" : record.category,
           isAiPrice: true,
           aiSuggestedPrice: aiPrice,
         ));
@@ -87,87 +241,316 @@ class _AiAnalysisPageState extends State<AiAnalysisPage>
       }
     }
 
-    if (mounted) {
-      setState(() {
-        _apiPrices = processed;
-        _isScanning = false;
-      });
-    }
-  } catch (e, st) {
-    if (mounted) {
-      setState(() => _isScanning = false);
-      showDialog(
-        context: context,
-        builder: (_) => AlertDialog(
-          title: const Text("Sistem Error"),
-          content: Text(e.toString()),
-        ),
-      );
-    }
-    print("Load Data Error: $e\n$st");
-  }
-}
-
-Future<double> getAiSuggestedPrice(String itemName, double lastPrice) async {
-  // 临时示例：原价 0 用 3.50，否则加 20%
-  return lastPrice > 0 ? lastPrice * 1.2 : 3.50;
-}
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
+    return processed;
   }
 
+  Future<double> getAiSuggestedPrice(String itemName, double lastPrice) async {
+    return lastPrice > 0 ? lastPrice * 1.2 : 3.50;
+  }
+
+  // ===================== Scaffold =====================
   @override
-Widget build(BuildContext context) {
-  return Scaffold(
-    backgroundColor: AppColors.offWhite,
-    appBar: AppBar(
-      title: const Text(
-        "Analisis Pintar Gemini",
-        style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 20),
-      ),
-      backgroundColor: AppColors.jungleGreen,
-      centerTitle: true,
-    ),
-    body: Column(
-      children: [
-        _buildScanningSection(),
-        Expanded(
-          child: SafeArea(
-            child: !_isScanning
-                ? SingleChildScrollView(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _buildCategoryFilter(),
-                        if (_apiPrices.isNotEmpty) ...[
-                          _buildResultsList(), // ✅ 改这里
-                        ],
-                        if (_apiPrices.isEmpty)
-                          const Padding(
-                            padding: EdgeInsets.all(16.0),
-                            child: Center(child: Text("Tiada data harga tersedia.")),
-                          ),
-                      ],
-                    ),
-                  )
-                : const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(16.0),
-                      child: CircularProgressIndicator(),
-                    ),
-                  ),
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.offWhite,
+      appBar: AppBar(
+        title: const Text(
+          "Analisis Pintar Gemini",
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+            fontSize: 20,
           ),
         ),
+        backgroundColor: AppColors.jungleGreen,
+        centerTitle: true,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _buildReceiptExtractionSection(),
+            _buildCategoryFilter(),
+            if (_apiPrices.isEmpty && !_isLoading)
+              const Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Center(
+                  child: Text(
+                    "Tiada rekod tersedia.",
+                    style: TextStyle(fontSize: 14),
+                  ),
+                ),
+              )
+            else
+              _buildResultsList(),
+          ],
+        ),
+      ),
+    );
+  }
+
+// 顶部 Receipt Extraction Section
+Widget _buildReceiptExtractionSection() {
+  return Container(
+    margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+    padding: const EdgeInsets.all(20),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(20),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.05),
+          blurRadius: 10,
+          offset: const Offset(0, 4),
+        )
+      ],
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 标题 + Scan Button
+        Row(
+          children: [
+            Icon(Icons.receipt_long, color: AppColors.jungleGreen),
+            const SizedBox(width: 8),
+            const Text(
+              "AI Receipt Scanner",
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+            const Spacer(),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.lightOrange,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+              ),
+              onPressed: _isExtracting ? null : _startAutoExtraction,
+              child: const Text(
+                "Scan",
+                style: TextStyle(color: Colors.black87),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+
+        // 如果没有数据
+        if (_extractedItems.isEmpty)
+          const Text(
+            "Belum ada resit diimbas.",
+            style: TextStyle(color: Colors.grey),
+          ),
+
+        // 显示已提取的 items
+        if (_extractedItems.isNotEmpty)
+          Column(
+            children: _extractedItems.asMap().entries.map((entry) {
+              int idx = entry.key;
+              ExtractedItem item = entry.value;
+              final nameController = TextEditingController(text: item.name);
+
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  children: [
+                    // 名称编辑
+                    Expanded(
+                      flex: 3,
+                      child: TextField(
+                        controller: nameController,
+                        decoration: const InputDecoration(
+                          border: OutlineInputBorder(),
+                          isDense: true,
+                          contentPadding: EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                        ),
+                        onChanged: (val) {
+                          setState(() {
+                            _extractedItems[idx] = _extractedItems[idx].copyWith(name: val);
+                          });
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+
+                    // 价格显示
+                    Expanded(
+                      flex: 1,
+                      child: Text(
+                        item.price,
+                        textAlign: TextAlign.right,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(width: 8),
+
+                    // 删除按钮
+                    InkWell(
+                      onTap: () {
+                        setState(() {
+                          _extractedItems.removeAt(idx);
+                        });
+                      },
+                      child: const Icon(Icons.delete, color: Colors.red),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          ),
+
+        const SizedBox(height: 12),
+
+        // Tambah 新 item 按钮
+SizedBox(
+  width: double.infinity,
+  child: ElevatedButton.icon(
+    style: ElevatedButton.styleFrom(
+      backgroundColor: AppColors.jungleGreen,
+      foregroundColor: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+      ),
+    ),
+    onPressed: () {
+      showDialog(
+        context: context,
+        builder: (_) {
+          final nameController = TextEditingController();
+          final priceController = TextEditingController();
+
+          return AlertDialog(
+            title: const Text("Tambah Item Baru"),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(
+                    labelText: "Nama Item",
+                    hintText: "Masukkan nama barang",
+                  ),
+                ),
+                TextField(
+                  controller: priceController,
+                  decoration: const InputDecoration(
+                    labelText: "Harga (RM)",
+                    hintText: "0.00",
+                  ),
+                  // 限制只能输入数字和点
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text("Batal"),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  if (nameController.text.isNotEmpty && priceController.text.isNotEmpty) {
+                    setState(() {
+                      _extractedItems.add(
+                        ExtractedItem(
+                          name: nameController.text,
+                          // 格式化价格为两位小数
+                          price: "RM ${double.tryParse(priceController.text)?.toStringAsFixed(2) ?? "0.00"}",
+                          date: DateTime.now(),
+                        ),
+                      );
+                    });
+                    Navigator.pop(context);
+                  }
+                },
+                child: const Text("Tambah"),
+              ),
+            ],
+          );
+        },
+      );
+    },
+    icon: const Icon(Icons.add),
+    label: const Text("Tambah Item"),
+  ),
+),
+        const SizedBox(height: 12),
+
+        // Sahkan Data Button
+        if (_extractedItems.isNotEmpty)
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.lightOrange,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+              ),
+              onPressed: _isConfirmed
+                  ? null
+                  : () async {
+                      setState(() => _isConfirmed = true);
+
+                      // 弹 loading dialog
+                      showDialog(
+                        context: context,
+                        barrierDismissible: false,
+                        builder: (_) => Dialog(
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20)),
+                          child: Padding(
+                            padding: const EdgeInsets.all(30),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: const [
+                                CircularProgressIndicator(),
+                                SizedBox(height: 20),
+                                Text(
+                                  "Mengesahkan Data...",
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+
+                      await Future.delayed(const Duration(seconds: 2));
+
+                      if (!mounted) return;
+
+                      Navigator.pop(context); // 关闭 dialog
+
+                      setState(() => _isConfirmed = false);
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("Resit berjaya disahkan ✅"),
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    },
+              child: const Text(
+                "Sahkan Data",
+                style: TextStyle(color: Colors.black87),
+              ),
+            ),
+          ),
       ],
     ),
   );
 }
 
-// ------------------ CATEGORY PRICE GRID ------------------
 Widget _buildCategoryPriceGrid() {
   final grouped = _getGroupedPrices();
   final filteredList = grouped[_selectedCategory] ?? [];
@@ -208,129 +591,6 @@ Widget _buildResultsList() {
       _buildProfitSimulatorCard(),
     ],
   );
-}
-// ------------------ SCANNING SECTION ------------------
-
-Widget _buildScanningSection() {
-  // 根据扫描状态动态调整容器高度
-  double currentHeight = _isScanning ? 200.0 : 120.0; 
-
-  return AnimatedContainer(
-    // 💡 修复点：将 EdgeInsets.all(500) 改为 Duration
-    duration: const Duration(milliseconds: 500), 
-    width: double.infinity,
-    height: currentHeight,
-    margin: const EdgeInsets.all(16),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(20),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withOpacity(0.05),
-          blurRadius: 10,
-          offset: const Offset(0, 4),
-        )
-      ],
-    ),
-    child: Stack(
-      children: [
-        // 背景图标
-        Center(
-          child: Icon(
-            Icons.receipt_long,
-            size: 80,
-            color: _isScanning ? AppColors.jungleGreen.withOpacity(0.1) : Colors.grey.shade200,
-          ),
-        ),
-
-        // 扫描线动画
-        // 在 _buildScanningSection 内部
-if (_isScanning)
-  RepaintBoundary( // 💡 关键：隔离重绘区域
-    child: AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        return Align(
-          alignment: Alignment(0, _controller.value * 2 - 1),
-          child: child,
-        );
-      },
-      child: Container(
-        height: 3, // 线条细一点
-        width: double.infinity,
-        margin: const EdgeInsets.symmetric(horizontal: 40),
-        decoration: BoxDecoration(
-          boxShadow: [ // 💡 增加发光效果，掩盖微小掉帧
-            BoxShadow(
-              color: AppColors.jungleGreen.withOpacity(0.5),
-              blurRadius: 8,
-              spreadRadius: 2,
-            )
-          ],
-          gradient: LinearGradient(
-            colors: [
-              AppColors.jungleGreen.withOpacity(0),
-              AppColors.jungleGreen,
-              AppColors.jungleGreen.withOpacity(0),
-            ],
-          ),
-        ),
-      ),
-    ),
-  ),
-
-        // 底部文字状态
-        Positioned(
-          bottom: 12,
-          left: 0,
-          right: 0,
-          child: Center(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (_isScanning)
-                  const SizedBox(
-                    width: 12,
-                    height: 12,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.jungleGreen),
-                  ),
-                if (_isScanning) const SizedBox(width: 8),
-                Text(
-                  _isScanning ? "Sedang Mengimbas..." : "Imbasan Selesai ✅",
-                  style: TextStyle(
-                    color: AppColors.jungleGreen,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
-void startScanning() {
-  setState(() {
-    _isScanning = true;
-  });
-  
-  // 💡 启动动画：往返重复播放
-  _controller.repeat(reverse: true);
-
-  // 模拟扫描 3 秒后结束
-  Future.delayed(const Duration(seconds: 3), () {
-    if (mounted) {
-      setState(() {
-        _isScanning = false;
-      });
-      // 💡 停止动画并复位
-      _controller.stop();
-      _controller.reset();
-    }
-  });
 }
 
   // ------------------ CATEGORY FILTER ------------------
