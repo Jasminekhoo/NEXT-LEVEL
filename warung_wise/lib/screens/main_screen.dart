@@ -78,7 +78,7 @@ class _MainScreenState extends State<MainScreen> {
   Widget build(BuildContext context) {
     // 3. 把 _startScanProcess 传给 Dashboard
     final List<Widget> pages = [
-      DashboardPage(onScanTap: _startScanProcess), // <--- 这里用新的函数
+      DashboardPage(onScanTap: _startScanProcess),  
       const AiAnalysisPage(),
       const ReportPage(),
     ];

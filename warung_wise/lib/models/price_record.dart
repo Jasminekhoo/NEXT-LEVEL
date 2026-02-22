@@ -27,19 +27,18 @@ class PriceRecord {
       itemName: (json['item'] ?? 'Barangan').toString().trim(),
       oldPrice: double.tryParse(json['old']?.toString() ?? '0') ?? 0,
       newPrice: double.tryParse(json['new']?.toString() ?? '0') ?? 0,
-      history: (json['history'] as List<dynamic>?)
-              ?.map((e) => double.tryParse(e.toString()) ?? 0.0)
-              .toList() ??
-          [],
+      history: (json['history'] as List<dynamic>? ?? [])
+          .map((e) => double.tryParse(e.toString()) ?? 0)
+          .toList(),
       unit: (json['unit'] ?? '-').toString(),
       date: (json['date'] ?? '').toString(),
       category: (json['category'] ?? 'Lain-lain').toString(),
     );
   }
 
-  // ------------------ 过去三个月是否有数据 ------------------
+  // ------------------ 是否有最近三个月数据 ------------------
   bool get hasRecentData {
-    if (history.isEmpty) return false;
+    if (date.isEmpty) return false;
     try {
       final lastDate = DateTime.parse(date);
       final cutoff = DateTime.now().subtract(const Duration(days: 90));
@@ -57,32 +56,5 @@ class PriceRecord {
   // ------------------ 价格来源 ------------------
   String get priceSource {
     return hasRecentData ? "Pasaran" : "AI Gemini";
-  }
-
-  // ------------------ 辅助：月份+年份 ------------------
-  String get dataMonth {
-    if (date.isEmpty) return "-";
-
-    try {
-      final dt = DateTime.parse(date);
-      const monthNames = [
-        'Januari',
-        'Februari',
-        'Mac',
-        'April',
-        'Mei',
-        'Jun',
-        'Julai',
-        'Ogos',
-        'September',
-        'Oktober',
-        'November',
-        'Disember'
-      ];
-      String month = monthNames[dt.month - 1];
-      return "$month ${dt.year}";
-    } catch (e) {
-      return "-";
-    }
   }
 }

@@ -6,6 +6,9 @@ import '../app_colors.dart';
 import '../widgets/custom_widgets.dart'; // 引入组件和 Transaction 模型
 import 'transaction_history_page.dart'; // 引入历史页
 import 'transaction_detail_page.dart';  // 🔥 引入详情页 (必须！)
+import '../models/extracted_item.dart';
+import 'receipt_review_page.dart';
+
 
 class DashboardPage extends StatefulWidget {
   final VoidCallback onScanTap;
@@ -20,6 +23,8 @@ class DashboardPage extends StatefulWidget {
 }
 
 class _DashboardPageState extends State<DashboardPage> {
+  final ValueNotifier<String> _loadingText =
+      ValueNotifier("Memulakan imbasan...");
   // 初始净赚金额
   double totalUntung = 145.50;
 
@@ -29,6 +34,103 @@ class _DashboardPageState extends State<DashboardPage> {
     Transaction(title: "Jual Nasi Lemak (50 pax)", amount: "+ RM 150.00", isIncome: true, date: "Hari Ini", time: "11:45 AM"),
     Transaction(title: "Beli Beras (10kg)", amount: "- RM 38.00", isIncome: false, date: "Hari Ini", time: "09:00 AM"),
   ];
+
+  // ==========================================
+  // 📸 Snap Receipt Flow
+  // ==========================================
+  Future<void> _handleSnapReceipt() async {
+  // 1️⃣ 显示 Loading Dialog
+  _showScanLoading();
+
+  _loadingText.value = "Mengambil gambar...";
+  await Future.delayed(const Duration(seconds: 1));
+
+  _loadingText.value = "Mengekstrak teks...";
+  await Future.delayed(const Duration(seconds: 1));
+
+  _loadingText.value = "Menganalisis dengan AI Gemini...";
+  await Future.delayed(const Duration(seconds: 1));
+
+  // 2️⃣ 模拟提取的物品
+  final today = DateTime.now();
+  final extractedItems = [
+    ExtractedItem(name: "Beras 5kg", price: "RM 18.50", date: today),
+    ExtractedItem(name: "Ayam 1kg", price: "RM 9.90", date: today),
+    ExtractedItem(name: "Telur Gred A", price: "RM 12.00", date: today),
+  ];
+
+  if (!mounted) return;
+
+  // 3️⃣ 关闭 Loading
+  Navigator.pop(context);
+
+  // 4️⃣ 跳转到 ReceiptReviewPage，并等待用户确认/修改
+  final result = await Navigator.push<List<ExtractedItem>>(
+    context,
+    MaterialPageRoute(
+      builder: (_) => ReceiptReviewPage(extractedItems: extractedItems),
+    ),
+  );
+
+  // 5️⃣ 如果用户确认有数据
+  if (result != null && result.isNotEmpty) {
+    setState(() {
+      for (var item in result) {
+        // 转成 Transaction（成本支出）
+        transactions.insert(
+          0,
+          Transaction(
+            title: "Beli ${item.name}",
+            amount: item.price.startsWith("RM") ? "- ${item.price}" : "- RM ${item.price}",
+            isIncome: false, // 🔴 支出
+            date: "Hari Ini",
+            time: _getCurrentTime(),
+          ),
+        );
+
+        // 更新净赚金额（扣掉成本）
+        totalUntung -= double.tryParse(item.price.replaceAll("RM", "").trim()) ?? 0;
+      }
+    });
+
+    // 6️⃣ 显示 SnackBar 提示
+    _showSuccessSnackBar(
+      isIncome: false, // 🔴 成本
+      text: "Resit berjaya direkod",
+      subText: "${result.length} item ditambah ke transaksi.",
+    );
+  }
+}
+
+  void _showScanLoading() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.all(30),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(),
+              const SizedBox(height: 20),
+              ValueListenableBuilder<String>(
+                valueListenable: _loadingText,
+                builder: (_, value, __) => Text(
+                  value,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   // ==========================================
   // 🟢 场景 A: 语音记收入 (Jual)
@@ -321,7 +423,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     label: "Snap Resit",
                     color: Colors.white,
                     textColor: AppColors.jungleGreen,
-                    onTap: widget.onScanTap, 
+                    onTap: _handleSnapReceipt,
                   ),
                 ),
                 const SizedBox(width: 15),
