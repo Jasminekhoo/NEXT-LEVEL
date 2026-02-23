@@ -1,14 +1,18 @@
 class Ingredient {
   String name;
-  String category; // 必须 match: Keperluan, Daging & Telur, Sayur, Buah
-  double gram;
-  double? customPricePerKg; // optional for tambah bahan
+  String category;
+  double gram; // 对于 biji，存数量；对 kg/g，存重量
+  double? customPricePerKg;
+  String unit; // 'biji', 'g', 'kg'
+  double? unitWeightGram; // 每个单位重量（biji专用）
 
   Ingredient({
     required this.name,
     required this.category,
     required this.gram,
     this.customPricePerKg,
+    this.unit = 'g',
+    this.unitWeightGram,
   });
 }
 
