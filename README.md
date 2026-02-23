@@ -1,6 +1,4 @@
-# NEXT-LEVEL
-KITAHACK 2026
-# 📱 Warung Wise – Your AI Business Partner
+# 📱 Warung Wise – Your AI Business Partner （by group NEXT LEVEL)
 
 > **"Empowering Micro-Hawkers. From Invisible to Bankable."**
 
@@ -66,10 +64,12 @@ We leveraged Google's ecosystem to build a scalable, intelligent, and seamless a
 
 ### The Challenge: Parsing Messy Hawker Receipts and Ensuring Trust
 **Problem:** Receipts from local wet markets are often handwritten, faded, or use heavy abbreviations (e.g., "Bawang Merah" written as "Bwg mrh"). Furthermore, 100% automated AI data entry makes older hawkers anxious about data accuracy.
+
 **Solution & Trade-off:** We implemented a "Human-in-the-Loop" architecture. Instead of saving AI-extracted data directly to the database, the AI forwards the data to a `ReceiptReviewPage`. Here, users can verify, edit, or delete items before confirming. This trade-off slightly increases the number of clicks but drastically improves data accuracy and user trust.
 
 ### The Challenge: Structuring AI Responses
 **Problem:** Early tests with Gemini often returned conversational text instead of raw data for our pricing engine.
+
 **Solution:** We heavily optimized our prompt engineering in `gemini_service.dart` (e.g., specifying *"Output ONLY a number. No explanation. No currency symbol"*). We then mapped the JSON response robustly to prevent UI crashes.
 
 ---
