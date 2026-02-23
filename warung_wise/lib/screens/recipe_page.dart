@@ -22,29 +22,51 @@ class _RecipePageState extends State<RecipePage> {
 
   // ---------------- SAMPLE RECIPES ----------------
   final List<Recipe> recipes = [
-    Recipe(
-      name: "Nasi Lemak",
-      ingredients: [
-        Ingredient(name: "Beras", category: "Keperluan", gram: 100),
-        Ingredient(name: "Ayam", category: "Daging & Telur", gram: 120),
-        Ingredient(name: "Timun", category: "Sayur", gram: 50),
-      ],
-    ),
-    Recipe(
-      name: "Ayam Goreng",
-      ingredients: [
-        Ingredient(name: "Ayam", category: "Daging & Telur", gram: 150),
-        Ingredient(name: "Bawang", category: "Sayur", gram: 30),
-      ],
-    ),
-    Recipe(
-      name: "Sayur Campur",
-      ingredients: [
-        Ingredient(name: "Kubis", category: "Sayur", gram: 100),
-        Ingredient(name: "Carrot", category: "Sayur", gram: 50),
-      ],
-    ),
-  ];
+  // 1. Nasi Lemak Biasa (RM 3.00)
+  Recipe(
+    name: "Nasi Lemak Biasa",
+    ingredients: [
+      Ingredient(name: "Beras Cap Jasmine (SST5%)(10kg)", category: "Keperluan", gram: 100),
+      Ingredient(name: "Santan Kelapa Segar (1kg)", category: "Keperluan", gram: 30),
+      Ingredient(name: "Telur Ayam Gred B (10biji)", category: "Daging & Telur", gram: 50), // 半颗蛋约50g
+      Ingredient(name: "Timun (1kg)", category: "Sayur", gram: 20),
+      Ingredient(name: "Ikan Bilis", category: "Daging & Telur", gram: 10), 
+      Ingredient(name: "Bawang Merah India (1kg)", category: "Sayur", gram: 15), // 用于sambal
+    ],
+  ),
+
+  // 2. Nasi Lemak Ayam (RM 6.50)
+  Recipe(
+    name: "Nasi Lemak Ayam",
+    ingredients: [
+      Ingredient(name: "Beras Cap Jasmine (SST5%)(10kg)", category: "Keperluan", gram: 100),
+      Ingredient(name: "Ayam Bersih - Standard (1kg)", category: "Daging & Telur", gram: 150),
+      Ingredient(name: "Santan Kelapa Segar (1kg)", category: "Keperluan", gram: 30),
+      Ingredient(name: "Timun (1kg)", category: "Sayur", gram: 20),
+      Ingredient(name: "Minyak Masak (1kg) - Buruh", category: "Keperluan", gram: 20), // 炸鸡耗油
+    ],
+  ),
+
+  // 3. Teh O Ais (RM 2.00)
+  Recipe(
+    name: "Teh O Ais",
+    ingredients: [
+      Ingredient(name: "Gula Pasir Kasar (1kg)", category: "Keperluan", gram: 20),
+      Ingredient(name: "Serbuk Teh", category: "Keperluan", gram: 5),
+      Ingredient(name: "Limau Nipis (1kg)", category: "Buah", gram: 10), // 可选：Teh O Ais Limau
+    ],
+  ),
+
+  // 4. Kuih Muih (1 Keping) (RM 0.50)
+  Recipe(
+    name: "Kuih Muih",
+    ingredients: [
+      Ingredient(name: "Tepung Gandum - Berbungkus (1kg)", category: "Keperluan", gram: 40),
+      Ingredient(name: "Gula Pasir Halus (1kg)", category: "Keperluan", gram: 15),
+      Ingredient(name: "Santan Kelapa Segar (1kg)", category: "Keperluan", gram: 10),
+    ],
+  ),
+];
 
   // ---------------- REAL PRICE LOOKUP ----------------
   double getPriceFromLookup(String name, [String? category]) {
