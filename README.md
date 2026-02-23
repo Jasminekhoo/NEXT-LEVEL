@@ -90,6 +90,14 @@ To run the Warung Wise prototype locally:
 1. **Prerequisites:** Ensure you have [Flutter SDK](https://docs.flutter.dev/get-started/install) installed.
 2. **Clone the Repository:**
    ```bash
-   git clone <YOUR_GITHUB_REPO_URL>
+   git clone <https://github.com/Jasminekhoo/NEXT-LEVEL.git>
    cd warung_wise
-   
+3. **Install Dependencies:**
+    ```bash
+    flutter clean
+    flutter pub get
+4. **Firebase Configuration:**
+   The project includes a firebase_options.dart file.
+5. **Run the App:**
+    ```bash
+    flutter run
