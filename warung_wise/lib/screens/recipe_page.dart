@@ -77,16 +77,25 @@ double calculateRecipeCost(Recipe recipe, {double profitMargin = 0.3}) {
   double totalCost = 0;
 
   for (var ingredient in recipe.ingredients) {
-    double pricePerUnit = ingredient.customPricePerKg ?? getPriceFromLookup(ingredient.name);
+    double pricePerKg = ingredient.customPricePerKg ?? getPriceFromLookup(ingredient.name);
+    double cost = 0;
 
-    double cost;
-
-    // ⚡ 鸡蛋按 biji 计算
-    if (ingredient.category.toLowerCase().contains("telur") &&
-        ingredient.name.toLowerCase().contains("telur")) {
-      cost = ingredient.gram * pricePerUnit; // gram 字段存的是 biji
-    } else {
-      cost = (ingredient.gram / 1000) * pricePerUnit; // 普通按 kg
+    // 按单位计算
+    switch (ingredient.unit.toLowerCase()) {
+      case 'biji':
+        // 每个重量换算 kg，再乘价格
+        double unitWeightGram = ingredient.unitWeightGram ?? 50; // 默认每个 50g
+        cost = ingredient.gram * pricePerKg * (unitWeightGram / 1000);
+        break;
+      case 'g':
+      case 'gram':
+        cost = (ingredient.gram / 1000) * pricePerKg;
+        break;
+      case 'kg':
+        cost = ingredient.gram * pricePerKg;
+        break;
+      default:
+        cost = (ingredient.gram / 1000) * pricePerKg;
     }
 
     totalCost += cost;
@@ -114,181 +123,186 @@ void _showAddIngredientDialog(Recipe recipe) {
 
   showDialog(
     context: context,
-    builder: (_) => StatefulBuilder(
-      builder: (context, setDialogState) => AlertDialog(
-        title: const Text("Tambah Bahan"),
-        content: SingleChildScrollView(
-          child: Column(
-            children: [
-              // 切换按钮：使用 lookup 或自定义
-              Row(
-                children: [
-                  Expanded(
-                    child: RadioListTile<bool>(
-                      title: const Text("Pilih dari senarai"),
-                      value: true,
-                      groupValue: useLookup,
-                      onChanged: (val) {
-                        setDialogState(() => useLookup = val!);
-                      },
+    builder: (_) {
+      String selectedUnit = 'g'; // Dialog 内部局部状态
+      return StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text("Tambah Bahan"),
+          content: SingleChildScrollView(
+            child: Column(
+              children: [
+                // 切换按钮：使用 lookup 或自定义
+                Row(
+                  children: [
+                    Expanded(
+                      child: RadioListTile<bool>(
+                        title: const Text("Pilih dari senarai"),
+                        value: true,
+                        groupValue: useLookup,
+                        onChanged: (val) {
+                          setDialogState(() => useLookup = val!);
+                        },
+                      ),
                     ),
+                    Expanded(
+                      child: RadioListTile<bool>(
+                        title: const Text("Custom"),
+                        value: false,
+                        groupValue: useLookup,
+                        onChanged: (val) {
+                          setDialogState(() => useLookup = val!);
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 10),
+
+                if (useLookup) ...[
+                  // Dropdown 选择已有商品
+                  DropdownButton<Map<String, String>>(
+                    isExpanded: true,
+                    hint: const Text("Pilih bahan"),
+                    value: selectedItem,
+                    items: PriceServiceCsv.itemLookup.values
+                        .map(
+                          (item) => DropdownMenuItem(
+                            value: item,
+                            child: Text(item['name']!),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (val) {
+                      setDialogState(() {
+                        selectedItem = val;
+                        nameController.text = val?['name'] ?? '';
+                        selectedCategory = val?['cat'] ?? 'Keperluan';
+
+                        // 获取最新价格
+                        final latestPrice = widget.latestPrices.firstWhere(
+                          (p) => p.itemName == selectedItem!['name'],
+                          orElse: () => PriceRecord(
+                            itemName: selectedItem!['name']!,
+                            oldPrice: 0,
+                            newPrice: 0,
+                            history: [0, 0, 0],
+                            unit: 'unit',
+                            date: '',
+                            category: selectedItem!['cat']!,
+                          ),
+                        );
+
+                        // 判断是否是鸡蛋
+                        bool isTelur = RegExp(r'telur', caseSensitive: false)
+                            .hasMatch(selectedItem?['name'] ?? '');
+
+                        if (isTelur) {
+                          selectedUnit = 'biji';
+                          gramController.text = '1'; // 默认 1颗
+                          // 鸡蛋价格总价 / 10 得单粒价格
+                          double singlePrice = latestPrice.newPrice / 10;
+                          priceController.text = singlePrice.toStringAsFixed(3);
+                        } else {
+                          selectedUnit = 'g';
+                          gramController.text = '100';
+                          priceController.text = latestPrice.newPrice.toStringAsFixed(2);
+                        }
+                      });
+                    },
                   ),
-                  Expanded(
-                    child: RadioListTile<bool>(
-                      title: const Text("Custom"),
-                      value: false,
-                      groupValue: useLookup,
-                      onChanged: (val) {
-                        setDialogState(() => useLookup = val!);
-                      },
-                    ),
+
+                  const SizedBox(height: 10),
+
+                  // Gram/Biji 输入
+                  TextField(
+                    controller: gramController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(labelText: "Jumlah："),
+                  ),
+                  const SizedBox(height: 10),
+
+                  // 单位选择
+                  DropdownButton<String>(
+                    value: selectedUnit,
+                    isExpanded: true,
+                    items: const [
+                      DropdownMenuItem(value: 'g', child: Text('Gram')),
+                      DropdownMenuItem(value: 'kg', child: Text('Kg')),
+                      DropdownMenuItem(value: 'biji', child: Text('Biji')),
+                    ],
+                    onChanged: (value) {
+                      setDialogState(() => selectedUnit = value!);
+                    },
+                  ),
+                ] else ...[
+                  // 自定义输入
+                  TextField(
+                    controller: nameController,
+                    decoration: const InputDecoration(labelText: "Nama Bahan"),
+                  ),
+                  TextField(
+                    controller: gramController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(labelText: "Gram/Biji"),
+                  ),
+                  TextField(
+                    controller: priceController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(labelText: "Harga per KG / per biji"),
+                  ),
+                  const SizedBox(height: 10),
+                  DropdownButton<String>(
+                    value: selectedCategory,
+                    isExpanded: true,
+                    items: const [
+                      DropdownMenuItem(value: "Keperluan", child: Text("Keperluan")),
+                      DropdownMenuItem(
+                          value: "Daging & Telur", child: Text("Daging & Telur")),
+                      DropdownMenuItem(value: "Sayur", child: Text("Sayur")),
+                      DropdownMenuItem(value: "Buah", child: Text("Buah")),
+                    ],
+                    onChanged: (value) {
+                      setDialogState(() => selectedCategory = value!);
+                    },
                   ),
                 ],
-              ),
-
-              const SizedBox(height: 10),
-
-              if (useLookup) ...[
-                // Dropdown 选择已有商品
-                DropdownButton<Map<String, String>>(
-                  isExpanded: true,
-                  hint: const Text("Pilih bahan"),
-                  value: selectedItem,
-                  items: PriceServiceCsv.itemLookup.values
-                      .map(
-                        (item) => DropdownMenuItem(
-                          value: item,
-                          child: Text(item['name']!),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (val) {
-                    setDialogState(() {
-                      selectedItem = val;
-                      nameController.text = val?['name'] ?? '';
-                      selectedCategory = val?['cat'] ?? 'Keperluan';
-
-                      // 自动填充价格
-                      final latestPrice = widget.latestPrices.firstWhere(
-                        (p) => p.itemName == selectedItem!['name'],
-                        orElse: () => PriceRecord(
-                          itemName: selectedItem!['name']!,
-                          oldPrice: 0,
-                          newPrice: 0,
-                          history: [0, 0, 0],
-                          unit: 'unit',
-                          date: '',
-                          category: selectedItem!['cat']!,
-                        ),
-                      );
-                      priceController.text =
-                          latestPrice.newPrice.toStringAsFixed(2);
-
-                      // ⚡ 自动填 gram/ biji
-                      if (gramController.text.isEmpty) {
-                        gramController.text =
-                            (selectedCategory.toLowerCase().contains("telur") &&
-                                    val?['name']?.toLowerCase().contains("telur") == true)
-                                ? "1"
-                                : "100";
-                      }
-                    });
-                  },
-                ),
-
-                const SizedBox(height: 10),
-
-                // 每次必须输入 gram
-                TextField(
-                  controller: gramController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: "Gram/Biji"),
-                ),
-              ] else ...[
-                // 自定义输入
-                TextField(
-                  controller: nameController,
-                  decoration: const InputDecoration(labelText: "Nama Bahan"),
-                ),
-                TextField(
-                  controller: gramController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: "Gram/Biji"),
-                ),
-                TextField(
-                  controller: priceController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: "Harga per KG"),
-                ),
-                const SizedBox(height: 10),
-                DropdownButton<String>(
-                  value: selectedCategory,
-                  isExpanded: true,
-                  items: const [
-                    DropdownMenuItem(value: "Keperluan", child: Text("Keperluan")),
-                    DropdownMenuItem(
-                        value: "Daging & Telur", child: Text("Daging & Telur")),
-                    DropdownMenuItem(value: "Sayur", child: Text("Sayur")),
-                    DropdownMenuItem(value: "Buah", child: Text("Buah")),
-                  ],
-                  onChanged: (value) {
-                    setDialogState(() => selectedCategory = value!);
-                  },
-                ),
               ],
-            ],
+            ),
           ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Batal", style: TextStyle(color: Colors.grey)),
+            ),
+            TextButton(
+              onPressed: () {
+                final double gram =
+                    double.tryParse(gramController.text.trim()) ?? 0;
+                if (gram <= 0) return;
+
+                double? pricePerUnit = double.tryParse(priceController.text.trim());
+
+                setState(() {
+                  recipe.ingredients.add(
+                    Ingredient(
+                      name: nameController.text.trim(),
+                      category: selectedCategory,
+                      gram: gram,
+                      customPricePerKg: pricePerUnit, // 鸡蛋即单粒价格
+                      unit: selectedUnit,
+                    ),
+                  );
+                });
+
+                Navigator.pop(context);
+              },
+              child: const Text("Tambah", style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Batal", style: TextStyle(color: Colors.grey)),
-          ),
-          TextButton(
-            onPressed: () {
-              // ⚡ 必须输入 gram
-              final double gram =
-                  double.tryParse(gramController.text.trim()) ?? 0;
-              if (gram <= 0) return;
-
-              // 判断使用 lookup 还是 custom
-              double? pricePerKg;
-              if (useLookup && selectedItem != null) {
-                final latestPrice = widget.latestPrices.firstWhere(
-                  (p) => p.itemName == selectedItem!['name'],
-                  orElse: () => PriceRecord(
-                    itemName: selectedItem!['name']!,
-                    oldPrice: 0,
-                    newPrice: 0,
-                    history: [0, 0, 0],
-                    unit: 'unit',
-                    date: '',
-                    category: selectedItem!['cat']!,
-                  ),
-                );
-                pricePerKg = latestPrice.newPrice;
-              } else {
-                pricePerKg = double.tryParse(priceController.text.trim());
-              }
-
-              setState(() {
-                recipe.ingredients.add(
-                  Ingredient(
-                    name: nameController.text.trim(),
-                    category: selectedCategory,
-                    gram: gram,
-                    customPricePerKg: pricePerKg,
-                  ),
-                );
-              });
-
-              Navigator.pop(context);
-            },
-            child: const Text("Tambah", style: TextStyle(fontWeight: FontWeight.bold)),
-          ),
-        ],
-      ),
-    ),
+      );
+    },
   );
 }
 
