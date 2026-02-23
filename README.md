@@ -58,6 +58,13 @@ We leveraged Google's ecosystem to build a scalable, intelligent, and seamless a
 1. **Flutter:** Used to build a highly responsive, cross-platform mobile application. We utilized packages like `fl_chart` for dynamic, interactive financial visualizations.
 2. **Firebase (Firestore):** Integrated for scalable backend database management. Configured in `main.dart` to sync transaction records, user data, and generated AI reports securely in the cloud.
 
+### Core Workflows
+1. **Smart Bookkeeping:** Camera Snap ➔ Cloud Vision OCR ➔ Gemini Structuring ({item, price}) ➔ ReceiptReviewPage (Human-in-the-Loop) ➔ Firestore.
+
+2. **Voice Ledger:** User Voice ➔ Speech-to-Text ➔ Gemini Parsing ➔ Cross-reference ProfilePage Menu Prices ➔ Auto-update Dashboard.
+
+3. **Financial Analysis:** Historical Data Aggregation ➔ Gemini Analysis ➔ Interactive Charts & Loan Simulation (report_page.dart).
+
 ---
 
 ## 🚧 4. Implementation Details & Challenges Faced
@@ -90,7 +97,7 @@ To run the Warung Wise prototype locally:
 1. **Prerequisites:** Ensure you have [Flutter SDK](https://docs.flutter.dev/get-started/install) installed.
 2. **Clone the Repository:**
    ```bash
-   git clone <https://github.com/Jasminekhoo/NEXT-LEVEL.git>
+   git clone https://github.com/Jasminekhoo/NEXT-LEVEL.git
    cd warung_wise
 3. **Install Dependencies:**
     ```bash
@@ -101,3 +108,5 @@ To run the Warung Wise prototype locally:
 5. **Run the App:**
     ```bash
     flutter run
+---
+Built by Group NEXT LEVEL for KitaHack 2026.
