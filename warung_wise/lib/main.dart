@@ -1,9 +1,14 @@
 // lib/main.dart
 
 import 'package:flutter/material.dart';
+<<<<<<< Updated upstream
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart'; 
 import 'firebase_options.dart';
+=======
+import 'package:firebase_core/firebase_core.dart'; // 1. Add this!
+import 'firebase_options.dart'; // 2. Add this (after Step 1 is done)!
+>>>>>>> Stashed changes
 import 'app_colors.dart';
 import 'screens/main_screen.dart';
 
@@ -32,6 +37,7 @@ class WarungWiseApp extends StatelessWidget {
     );
   }
 }
+<<<<<<< Updated upstream
 
 // ========================================================
 // Firebase 测试代码 (FirebaseTestScreen)
@@ -67,3 +73,5 @@ class FirebaseTestScreen extends StatelessWidget {
     );
   }
 }
+=======
+>>>>>>> Stashed changes

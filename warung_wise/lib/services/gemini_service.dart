@@ -1,21 +1,27 @@
-import 'dart:convert';               // jsonEncode / jsonDecode
-import 'package:http/http.dart' as http;  // http.post
+import 'dart:convert'; // jsonEncode / jsonDecode
+import 'package:http/http.dart' as http; // http.post
 
 class GeminiService {
+<<<<<<< Updated upstream
   static const String _apiKey = "AIzaSyCD7Srvv1n4dSb21YrGQdMgJoGm-VYV3jw";
+=======
+  //static const String _apiKey = "AIzaSyBi3JJAAN7GBKtm3hQKbwpsO0rtUxZsBn8";
+  static const String _apiKey = String.fromEnvironment('GEMINI_API_KEY');
+>>>>>>> Stashed changes
 
   /// 增加 modelName 参数，可选，默认使用 gemini-flash-latest
   static Future<double?> getSuggestedPrice({
     required String itemName,
     required double lastPrice,
     required String category,
-    String modelName = "models/gemini-flash-latest", // ✅ 默认模型
+    String modelName = "gemini-1.5-flash", // ✅ 默认模型
   }) async {
     final url = Uri.parse(
       "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=YOUR_API_KEY",
     );
 
-    final prompt = """
+    final prompt =
+        """
 You are a senior market price analyst in Malaysia (February 2026).
 
 Item: $itemName
@@ -35,19 +41,21 @@ Return updated market price:
 """;
 
     try {
-      final response = await http.post(
-        url,
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode({
-          "contents": [
-            {
-              "parts": [
-                {"text": prompt}
-              ]
-            }
-          ]
-        }),
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .post(
+            url,
+            headers: {"Content-Type": "application/json"},
+            body: jsonEncode({
+              "contents": [
+                {
+                  "parts": [
+                    {"text": prompt},
+                  ],
+                },
+              ],
+            }),
+          )
+          .timeout(const Duration(seconds: 10));
 
       print("📡 状态码: ${response.statusCode}");
       print("📡 返回: ${response.body}");

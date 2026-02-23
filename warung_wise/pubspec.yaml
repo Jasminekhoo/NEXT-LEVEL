@@ -36,7 +36,11 @@ dependencies:
   fl_chart: ^1.1.1
 
   # HTTP requests for fetching CSV or API data
+<<<<<<< Updated upstream
   http: ^1.6.0
+=======
+  http: ^1.2.0
+>>>>>>> Stashed changes
 
   # CSV parsing
   csv: ^5.0.2
@@ -47,6 +51,8 @@ dependencies:
   path_provider: ^2.0.15
   firebase_core: ^4.4.0
   cloud_firestore: ^6.1.2
+  google_generative_ai: ^0.4.7
+  image_picker: ^1.2.1
 
 dev_dependencies:
   flutter_test:

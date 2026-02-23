@@ -7,14 +7,14 @@ class Transaction {
   final String title;
   final String amount;
   final bool isIncome;
-  final String date; 
+  final String date;
   final String time;
 
   Transaction({
-    required this.title, 
-    required this.amount, 
+    required this.title,
+    required this.amount,
     required this.isIncome,
-    this.date = "Hari Ini", 
+    this.date = "Hari Ini",
     this.time = "12:00 PM",
   });
 }
@@ -52,7 +52,7 @@ class BigCardButton extends StatelessWidget {
               color: Colors.black.withOpacity(0.1),
               blurRadius: 10,
               offset: const Offset(0, 5),
-            )
+            ),
           ],
         ),
         child: Column(
@@ -82,8 +82,8 @@ class TransactionTile extends StatelessWidget {
   final String title;
   final String amount;
   final bool isIncome;
-  final String time; 
-  final VoidCallback? onTap; 
+  final String time;
+  final VoidCallback? onTap;
   final Color successColor;
   final Color warningColor;
 
@@ -92,7 +92,7 @@ class TransactionTile extends StatelessWidget {
     required this.title,
     required this.amount,
     required this.isIncome,
-    required this.time, 
+    required this.time,
     this.onTap,
     required this.successColor,
     required this.warningColor,
@@ -103,7 +103,7 @@ class TransactionTile extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: onTap, 
+        onTap: onTap,
         borderRadius: BorderRadius.circular(15),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -115,13 +115,13 @@ class TransactionTile extends StatelessWidget {
                 color: Colors.grey.withOpacity(0.08),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
-              )
+              ),
             ],
           ),
           child: Row(
             // 🔥 关键改动：改为 Start 对齐。
             // 这样如果标题变两行，图标和金额会保持在第一行的高度，不会跑位。
-            crossAxisAlignment: CrossAxisAlignment.start, 
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // 1. 图标
               Padding(
@@ -133,7 +133,7 @@ class TransactionTile extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              
+
               // 2. 标题与时间区
               Expanded(
                 child: Column(
@@ -152,18 +152,15 @@ class TransactionTile extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      time, 
-                      style: TextStyle(
-                        fontSize: 12, 
-                        color: Colors.grey[500],
-                      ),
+                      time,
+                      style: TextStyle(fontSize: 12, color: Colors.grey[500]),
                     ),
                   ],
                 ),
               ),
 
               // 3. 金额部分
-              const SizedBox(width: 12), 
+              const SizedBox(width: 12),
               Padding(
                 padding: const EdgeInsets.only(top: 2), // 对齐文字第一行
                 child: Text(

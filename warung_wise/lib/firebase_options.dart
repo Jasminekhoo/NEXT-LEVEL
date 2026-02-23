@@ -41,7 +41,8 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyB1iShHxAGyr7gzubs8DlthuE4-mZGrvGs',
+    //apiKey: 'AIzaSyB1iShHxAGyr7gzubs8DlthuE4-mZGrvGs',
+    apiKey: const String.fromEnvironment('GEMINI_API_KEY'),
     appId: '1:782204109800:web:08fffa23ab172cb2829a5d',
     messagingSenderId: '782204109800',
     projectId: 'warung-wise',
@@ -51,7 +52,8 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyCVRQizgiezqs7esCffoq_nZocGj-VoWvg',
+    //apiKey: 'AIzaSyCVRQizgiezqs7esCffoq_nZocGj-VoWvg',
+    apiKey: const String.fromEnvironment('GEMINI_API_KEY'),
     appId: '1:782204109800:android:569f9df31b45eec1829a5d',
     messagingSenderId: '782204109800',
     projectId: 'warung-wise',
@@ -59,7 +61,8 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyCV_kG1PH3u2FcU3YWNpeH9dd3BZoPaGiM',
+    //apiKey: 'AIzaSyCV_kG1PH3u2FcU3YWNpeH9dd3BZoPaGiM',
+    apiKey: const String.fromEnvironment('GEMINI_API_KEY'),
     appId: '1:782204109800:ios:7e7f768b284ee57f829a5d',
     messagingSenderId: '782204109800',
     projectId: 'warung-wise',
@@ -68,7 +71,8 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyCV_kG1PH3u2FcU3YWNpeH9dd3BZoPaGiM',
+    //apiKey: 'AIzaSyCV_kG1PH3u2FcU3YWNpeH9dd3BZoPaGiM',
+    apiKey: const String.fromEnvironment('GEMINI_API_KEY'),
     appId: '1:782204109800:ios:7e7f768b284ee57f829a5d',
     messagingSenderId: '782204109800',
     projectId: 'warung-wise',
@@ -77,7 +81,8 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyB1iShHxAGyr7gzubs8DlthuE4-mZGrvGs',
+    //apiKey: 'AIzaSyB1iShHxAGyr7gzubs8DlthuE4-mZGrvGs',
+    apiKey: const String.fromEnvironment('GEMINI_API_KEY'),
     appId: '1:782204109800:web:cfb8ec90dc41f090829a5d',
     messagingSenderId: '782204109800',
     projectId: 'warung-wise',

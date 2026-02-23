@@ -20,8 +20,5 @@ class Recipe {
   String name;
   List<Ingredient> ingredients;
 
-  Recipe({
-    required this.name,
-    required this.ingredients,
-  });
+  Recipe({required this.name, required this.ingredients});
 }
