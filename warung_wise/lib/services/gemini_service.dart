@@ -2,7 +2,7 @@ import 'dart:convert';               // jsonEncode / jsonDecode
 import 'package:http/http.dart' as http;  // http.post
 
 class GeminiService {
-  static const String _apiKey = "AIzaSyBi3JJAAN7GBKtm3hQKbwpsO0rtUxZsBn8";
+  static const String _apiKey = "AIzaSyCD7Srvv1n4dSb21YrGQdMgJoGm-VYV3jw";
 
   /// 增加 modelName 参数，可选，默认使用 gemini-flash-latest
   static Future<double?> getSuggestedPrice({
@@ -12,7 +12,7 @@ class GeminiService {
     String modelName = "models/gemini-flash-latest", // ✅ 默认模型
   }) async {
     final url = Uri.parse(
-      "https://generativelanguage.googleapis.com/v1beta/models/$modelName:generateContent?key=$_apiKey",
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=YOUR_API_KEY",
     );
 
     final prompt = """

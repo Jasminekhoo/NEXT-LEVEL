@@ -711,7 +711,7 @@ String _getMonthNameShort(int month) {
       ),
       icon: const Icon(Icons.restaurant_menu),
       label: const Text(
-        "Buka Simulator Resipi",
+        "Simulator Harga Resipi",
         style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
       ),
       onPressed: () {
