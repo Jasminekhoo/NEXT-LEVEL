@@ -427,7 +427,8 @@ class _IncomeExpenseChartCardState extends State<IncomeExpenseChartCard> {
                             default: text = const Text('', style: style); break;
                           }
                         }
-                        return SideTitleWidget(axisSide: meta.axisSide, child: text);
+                        //return SideTitleWidget(axisSide: meta.axisSide, child: text);
+                        return SideTitleWidget(meta: meta, child: text);
                       },
                     ),
                   ),

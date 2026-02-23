@@ -127,6 +127,7 @@ double calculateRecipeCost(Recipe recipe, {double profitMargin = 0.3}) {
 }
 
   // ---------------- DELETE INGREDIENT ----------------
+
   void deleteIngredient(Recipe recipe, int index) {
     setState(() {
       recipe.ingredients.removeAt(index);

@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:csv/csv.dart';
 import '../models/price_record.dart';
 
+
 class PriceServiceCsv {
   static const Map<int, Map<String, String>> itemLookup = {
     // --- Daging & Telur ---
@@ -65,11 +66,21 @@ class PriceServiceCsv {
     final currentResult = await _downloadMonth(currentYM);
     final lastResult = await _downloadMonth(lastYM);
 
-    final currentRows =
-        const CsvToListConverter().convert(currentResult['content']!, eol: '\n');
+   final currentRows = const CsvToListConverter().convert(
+        currentResult['content'] ?? '', 
+        eol: '\n'
+      );
 
-    final lastRows =
-        const CsvToListConverter().convert(lastResult['content']!, eol: '\n');
+      final lastRows = const CsvToListConverter().convert(
+        lastResult['content'] ?? '', 
+        eol: '\n'
+      );
+
+   // final currentRows =
+       // CsvToListConverter().convert(currentResult['content']!, eol: '\n');
+
+    //final lastRows =
+        //CsvToListConverter().convert(lastResult['content']!, eol: '\n');
 
     // 存储数据
     Map<int, double> currentLatestPrice = {};

@@ -107,11 +107,11 @@ class ProfilePage extends StatelessWidget {
                 children: [
                   _buildMenuItem("Nasi Lemak Biasa", "RM 3.00"),
                   const Divider(height: 1),
-                  _buildMenuItem("Nasi Lemak Ayam", "RM 6.50"),
+                  _buildMenuItem("Nasi Lemak Ayam", "RM 4.00"),
                   const Divider(height: 1),
-                  _buildMenuItem("Teh O Ais", "RM 2.00"),
+                  _buildMenuItem("Teh O Ais", "RM 1.00"),
                   const Divider(height: 1),
-                  _buildMenuItem("Kuih Muih (1 Keping)", "RM 0.50"),
+                  _buildMenuItem("Kuih Muih (1 Keping)", "RM 1.00"),
                 ],
               ),
             ),
@@ -130,7 +130,7 @@ class ProfilePage extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  _buildMenuItem("Sewa Tapak (Harian)", "RM 15.00"),
+                  _buildMenuItem("Sewa Tapak (Harian)", "RM 30.00"),
                   const Divider(height: 1),
                   _buildMenuItem("Bil Air & Elektrik (Bulan)", "RM 80.00"),
                 ],

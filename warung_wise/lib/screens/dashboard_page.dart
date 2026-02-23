@@ -354,8 +354,8 @@ GestureDetector(
                           child: Stack(
                             alignment: Alignment.center,
                             children: [
-                              const CircularProgressIndicator(
-                                value: 0.72, 
+                               CircularProgressIndicator(
+                                value: (totalUntung / 200).clamp(0.0, 1.0),
                                 backgroundColor: Colors.white24,
                                 color: AppColors.lightOrange, 
                                 strokeWidth: 6,
