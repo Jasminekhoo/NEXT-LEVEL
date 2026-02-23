@@ -1,13 +1,14 @@
 // lib/screens/dashboard_page.dart
 
 import 'package:flutter/material.dart';
-import 'dart:async'; // 用于计时器
+import 'dart:async'; 
 import '../app_colors.dart';
-import '../widgets/custom_widgets.dart'; // 引入组件和 Transaction 模型
-import 'transaction_history_page.dart'; // 引入历史页
-import 'transaction_detail_page.dart';  // 🔥 引入详情页 (必须！)
+import '../widgets/custom_widgets.dart'; 
+import 'transaction_history_page.dart'; 
+import 'transaction_detail_page.dart'; 
 import '../models/extracted_item.dart';
 import 'receipt_review_page.dart';
+import 'profile_page.dart'; 
 
 
 class DashboardPage extends StatefulWidget {
@@ -299,14 +300,24 @@ class _DashboardPageState extends State<DashboardPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(2),
-                      decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                      child: const CircleAvatar(
-                        radius: 24,
-                        backgroundImage: NetworkImage('https://i.pravatar.cc/150?u=a042581f4e29026024d'), 
-                      ),
-                    ),
+                   // 讓頭像可以被點擊
+GestureDetector(
+  onTap: () {
+    // 點擊後跳轉到 ProfilePage
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const ProfilePage()),
+    );
+  },
+  child: Container(
+    padding: const EdgeInsets.all(2),
+    decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+    child: const CircleAvatar(
+      radius: 24,
+      backgroundImage: NetworkImage('https://tse3.mm.bing.net/th/id/OIP.kp5huS9dTrQdcZH_FcqMTQHaHa?rs=1&pid=ImgDetMain&o=7&rm=3'), 
+    ),
+  ),
+),
                     Stack(
                       children: [
                         const Icon(Icons.notifications_outlined, color: Colors.white, size: 30),
