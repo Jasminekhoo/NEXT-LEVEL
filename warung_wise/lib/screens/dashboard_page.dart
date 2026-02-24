@@ -1,78 +1,104 @@
 // lib/screens/dashboard_page.dart
 
 import 'package:flutter/material.dart';
-import 'dart:async'; 
+import 'dart:async';
 import '../app_colors.dart';
-import '../widgets/custom_widgets.dart'; 
-import 'transaction_history_page.dart'; 
-import 'transaction_detail_page.dart'; 
+import '../widgets/custom_widgets.dart';
+import 'transaction_history_page.dart';
+import 'transaction_detail_page.dart';
 import '../models/extracted_item.dart';
 import 'receipt_review_page.dart';
-import 'profile_page.dart'; 
-
+import 'profile_page.dart';
+import 'package:cloud_firestore/cloud_firestore.dart' as fs; // 必须这样写
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 class DashboardPage extends StatefulWidget {
   final VoidCallback onScanTap;
 
-  const DashboardPage({
-    super.key,
-    required this.onScanTap,
-  });
+  const DashboardPage({super.key, required this.onScanTap});
 
   @override
   State<DashboardPage> createState() => _DashboardPageState();
 }
 
 class _DashboardPageState extends State<DashboardPage> {
-  final ValueNotifier<String> _loadingText =
-      ValueNotifier("Memulakan imbasan...");
+  // ==========================
+  // SpeechToText
+  // ==========================
+  final stt.SpeechToText _speech = stt.SpeechToText();
+  bool _speechReady = false;
+  bool _isListening = false;
+  String _lastWords = "";
+
+  final ValueNotifier<String> _loadingText = ValueNotifier(
+    "Memulakan imbasan...",
+  );
   // 初始净赚金额
   double totalUntung = 145.50;
 
   // 2. 初始数据 (🔥 必须加上 time，否则报错)
   List<Transaction> transactions = [
-    Transaction(title: "Beli Telur Gred A", amount: "- RM 18.00", isIncome: false, date: "Hari Ini", time: "08:30 AM"),
-    Transaction(title: "Jual Nasi Lemak (50 pax)", amount: "+ RM 150.00", isIncome: true, date: "Hari Ini", time: "11:45 AM"),
-    Transaction(title: "Beli Beras (10kg)", amount: "- RM 38.00", isIncome: false, date: "Hari Ini", time: "09:00 AM"),
+    Transaction(
+      title: "Beli Telur Gred A",
+      amount: "- RM 18.00",
+      isIncome: false,
+      date: "Hari Ini",
+      time: "08:30 AM",
+    ),
+    Transaction(
+      title: "Jual Nasi Lemak (50 pax)",
+      amount: "+ RM 150.00",
+      isIncome: true,
+      date: "Hari Ini",
+      time: "11:45 AM",
+    ),
+    Transaction(
+      title: "Beli Beras (10kg)",
+      amount: "- RM 38.00",
+      isIncome: false,
+      date: "Hari Ini",
+      time: "09:00 AM",
+    ),
   ];
 
   // ==========================================
   // 📸 Snap Receipt Flow
   // ==========================================
   Future<void> _handleSnapReceipt() async {
-  // 1️⃣ 显示 Loading Dialog
-  _showScanLoading();
+    // 1️⃣ 显示 Loading Dialog
+    _showScanLoading();
 
-  _loadingText.value = "Mengambil gambar...";
-  await Future.delayed(const Duration(seconds: 1));
+    _loadingText.value = "Mengambil gambar...";
+    await Future.delayed(const Duration(seconds: 1));
 
-  _loadingText.value = "Mengekstrak teks...";
-  await Future.delayed(const Duration(seconds: 1));
+    _loadingText.value = "Mengekstrak teks...";
+    await Future.delayed(const Duration(seconds: 1));
 
-  _loadingText.value = "Menganalisis dengan AI Gemini...";
-  await Future.delayed(const Duration(seconds: 1));
+    _loadingText.value = "Menganalisis dengan AI Gemini...";
+    await Future.delayed(const Duration(seconds: 1));
 
-  // 2️⃣ 模拟提取的物品
-  final today = DateTime.now();
-  final extractedItems = [
-    ExtractedItem(name: "Beras 5kg", price: "RM 18.50", date: today),
-    ExtractedItem(name: "Ayam 1kg", price: "RM 9.90", date: today),
-    ExtractedItem(name: "Telur Gred A", price: "RM 12.00", date: today),
-  ];
+    // 2️⃣ 模拟提取的物品
+    final today = DateTime.now();
+    final extractedItems = [
+      ExtractedItem(name: "Beras 5kg", price: "RM 18.50", date: today),
+      ExtractedItem(name: "Ayam 1kg", price: "RM 9.90", date: today),
+      ExtractedItem(name: "Telur Gred A", price: "RM 12.00", date: today),
+    ];
 
-  if (!mounted) return;
+    if (!mounted) return;
 
-  // 3️⃣ 关闭 Loading
-  Navigator.pop(context);
+    // 3️⃣ 关闭 Loading
+    Navigator.pop(context);
 
-  // 4️⃣ 跳转到 ReceiptReviewPage，并等待用户确认/修改
-  final result = await Navigator.push<List<ExtractedItem>>(
-    context,
-    MaterialPageRoute(
-      builder: (_) => ReceiptReviewPage(extractedItems: extractedItems),
-    ),
-  );
+    // 4️⃣ 跳转到 ReceiptReviewPage，并等待用户确认/修改
+    final result = await Navigator.push<List<ExtractedItem>>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ReceiptReviewPage(extractedItems: extractedItems),
+      ),
+    );
 
+    /*
   // 5️⃣ 如果用户确认有数据
   if (result != null && result.isNotEmpty) {
     setState(() {
@@ -102,6 +128,60 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 }
+*/
+
+    // 5️⃣ 如果用户确认有数据
+    if (result != null && result.isNotEmpty) {
+      for (var item in result) {
+        // A. 清洗数据：去掉 "RM"，转为数字
+        double priceNum =
+            double.tryParse(item.price.replaceAll(RegExp(r'[^0-9.]'), '')) ??
+            0.0;
+
+        // B. 🚀 写入 Firestore: 'transactions' 集合 (每一笔记录)
+        await fs.FirebaseFirestore.instance.collection('transactions').add({
+          'title': "Beli ${item.name}",
+          'amount': "- RM ${priceNum.toStringAsFixed(2)}",
+          'isIncome': false,
+          'timestamp': fs.FieldValue.serverTimestamp(),
+          'time': _getCurrentTime(),
+        });
+
+        // C. 🚀 写入 Firestore: 'ingredient_prices' 集合 (更新食材单价库)
+        // 使用 set(merge: true) 确保同名食材只更新价格，不产生重复文档
+        await fs.FirebaseFirestore.instance
+            .collection('ingredient_prices')
+            .doc(item.name.trim().toLowerCase()) // 使用小写名称作为 ID 避免重复
+            .set({
+              'name': item.name,
+              'pricePerKg': priceNum,
+              'lastUpdated': fs.FieldValue.serverTimestamp(),
+            }, fs.SetOptions(merge: true));
+
+        // D. 更新本地 UI
+        setState(() {
+          transactions.insert(
+            0,
+            Transaction(
+              title: "Beli ${item.name}",
+              amount: "- RM ${priceNum.toStringAsFixed(2)}",
+              isIncome: false,
+              date: "Hari Ini",
+              time: _getCurrentTime(),
+            ),
+          );
+          totalUntung -= priceNum;
+        });
+      }
+
+      // 6️⃣ 显示 SnackBar
+      _showSuccessSnackBar(
+        isIncome: false,
+        text: "Resit berjaya direkod",
+        subText: "${result.length} item telah disinkronkan ke Firebase.",
+      );
+    }
+  }
 
   void _showScanLoading() {
     showDialog(
@@ -121,9 +201,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 builder: (_, value, __) => Text(
                   value,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
             ],
@@ -134,35 +212,41 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   // ==========================================
-  // 🟢 场景 A: 语音记收入 (Jual)
+  // 🟢 场景 A: 语音记收入 (Jual)   //should be implement voice ai
   // ==========================================
   void _simulateSalesInput() {
-    _showListeningDialog("Sedang mendengar...", "'Tadi jual 20 bungkus Nasi Lemak...'");
+    _showListeningDialog(
+      "Sedang mendengar...",
+      "'Tadi jual 20 bungkus Nasi Lemak...'",
+    );
 
     Timer(const Duration(seconds: 2), () {
-      Navigator.pop(context); 
+      Navigator.pop(context);
 
       // 假设：销售 RM 100，成本 RM 60 -> 净赚 RM 40
       double untungBaru = 40.00;
 
       setState(() {
         // A. 更新顶部大数字
-        totalUntung += untungBaru; 
-        
+        totalUntung += untungBaru;
+
         // B. 🔥 插入新数据 (带上当前时间)
-        transactions.insert(0, Transaction(
-          title: "Jual Nasi Lemak (20 pax)", 
-          amount: "+ RM 100.00", 
-          isIncome: true,
-          date: "Hari Ini",
-          time: _getCurrentTime() // 获取当前时间
-        ));
+        transactions.insert(
+          0,
+          Transaction(
+            title: "Jual Nasi Lemak (20 pax)",
+            amount: "+ RM 100.00",
+            isIncome: true,
+            date: "Hari Ini",
+            time: _getCurrentTime(), // 获取当前时间
+          ),
+        );
       });
 
       _showSuccessSnackBar(
         isIncome: true,
         text: "Rekod: 20x Nasi Lemak",
-        subText: "Gemini: Untung bersih +RM 40.00 direkodkan."
+        subText: "Gemini: Untung bersih +RM 40.00 direkodkan.",
       );
     });
   }
@@ -171,31 +255,43 @@ class _DashboardPageState extends State<DashboardPage> {
   // 🔴 场景 B: 语音记成本 (Beli/Kos)
   // ==========================================
   void _simulateCostInput() {
-    _showListeningDialog("Mencatat Kos...", "'Beli santan & daun pandan RM 25...'");
+    _showListeningDialog(
+      "Mencatat Kos...",
+      "'Beli santan & daun pandan RM 25...'",
+    );
 
-    Timer(const Duration(seconds: 2), () {
-      Navigator.pop(context); 
-
+    Timer(const Duration(seconds: 2), () async {
+      // 加入 async
+      Navigator.pop(context);
       double kosBaru = 25.00;
 
-      setState(() {
-        // A. 更新顶部大数字 (扣钱)
-        totalUntung -= kosBaru; 
+      // 🚀 同步到 Firebase
+      await fs.FirebaseFirestore.instance.collection('transactions').add({
+        'title': "Beli Santan (Tunai)",
+        'amount': "- RM 25.00",
+        'isIncome': false,
+        'timestamp': fs.FieldValue.serverTimestamp(),
+        'time': _getCurrentTime(),
+      });
 
-        // B. 🔥 插入新数据 (带上当前时间)
-        transactions.insert(0, Transaction(
-          title: "Beli Santan (Tunai)", 
-          amount: "- RM 25.00", 
-          isIncome: false,
-          date: "Hari Ini",
-          time: _getCurrentTime() // 获取当前时间
-        ));
+      setState(() {
+        totalUntung -= kosBaru;
+        transactions.insert(
+          0,
+          Transaction(
+            title: "Beli Santan (Tunai)",
+            amount: "- RM 25.00",
+            isIncome: false,
+            date: "Hari Ini",
+            time: _getCurrentTime(),
+          ),
+        );
       });
 
       _showSuccessSnackBar(
-        isIncome: false, 
+        isIncome: false,
         text: "Rekod: Beli Santan (Pasar)",
-        subText: "Gemini: Kos RM 25.00 ditolak."
+        subText: "Gemini: Kos RM 25.00 ditolak.",
       );
     });
   }
@@ -203,7 +299,9 @@ class _DashboardPageState extends State<DashboardPage> {
   // 🔥 辅助函数：获取当前时间字符串 (比如 "02:30 PM")
   String _getCurrentTime() {
     final now = DateTime.now();
-    final hour = now.hour > 12 ? now.hour - 12 : (now.hour == 0 ? 12 : now.hour);
+    final hour = now.hour > 12
+        ? now.hour - 12
+        : (now.hour == 0 ? 12 : now.hour);
     final period = now.hour >= 12 ? "PM" : "AM";
     final minute = now.minute.toString().padLeft(2, '0');
     return "$hour:$minute $period";
@@ -216,7 +314,9 @@ class _DashboardPageState extends State<DashboardPage> {
       barrierDismissible: false,
       builder: (context) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -226,15 +326,26 @@ class _DashboardPageState extends State<DashboardPage> {
                   color: AppColors.lightOrange.withOpacity(0.2),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.mic, size: 40, color: AppColors.lightOrange),
+                child: const Icon(
+                  Icons.mic,
+                  size: 40,
+                  color: AppColors.lightOrange,
+                ),
               ),
               const SizedBox(height: 20),
               Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 10),
-              Text(subtitle, 
-                style: TextStyle(fontSize: 14, color: Colors.grey[600], fontStyle: FontStyle.italic), textAlign: TextAlign.center),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                  fontStyle: FontStyle.italic,
+                ),
+                textAlign: TextAlign.center,
+              ),
               const SizedBox(height: 20),
-              const LinearProgressIndicator(color: AppColors.lightOrange), 
+              const LinearProgressIndicator(color: AppColors.lightOrange),
             ],
           ),
         );
@@ -243,7 +354,11 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   // --- 辅助函数：显示 SnackBar ---
-  void _showSuccessSnackBar({required bool isIncome, required String text, required String subText}) {
+  void _showSuccessSnackBar({
+    required bool isIncome,
+    required String text,
+    required String subText,
+  }) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Column(
@@ -253,8 +368,9 @@ class _DashboardPageState extends State<DashboardPage> {
             Row(
               children: [
                 Icon(
-                  isIncome ? Icons.check_circle : Icons.remove_circle, 
-                  color: Colors.white, size: 20
+                  isIncome ? Icons.check_circle : Icons.remove_circle,
+                  color: Colors.white,
+                  size: 20,
                 ),
                 const SizedBox(width: 10),
                 Text(text, style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -263,17 +379,124 @@ class _DashboardPageState extends State<DashboardPage> {
             Padding(
               padding: const EdgeInsets.only(left: 30, top: 4),
               child: Text(
-                subText, 
-                style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 12),
+                subText,
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.9),
+                  fontSize: 12,
+                ),
               ),
             ),
           ],
         ),
-        backgroundColor: isIncome ? AppColors.successGreen : AppColors.warningRed, 
+        backgroundColor: isIncome
+            ? AppColors.successGreen
+            : AppColors.warningRed,
         duration: const Duration(seconds: 4),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
+    );
+  }
+
+  // --- 初始化语音识别 --- speechtotext
+  @override
+  void initState() {
+    super.initState();
+    _initSpeech();
+  }
+
+  Future<void> _initSpeech() async {
+    _speechReady = await _speech.initialize(
+      onStatus: (status) {
+        // status: listening / notListening / done
+      },
+      onError: (error) {
+        // optional: show snackbar
+      },
+    );
+    setState(() {});
+  }
+
+  Future<String?> _listenOnce({
+    Duration maxDuration = const Duration(seconds: 6),
+  }) async {
+    if (!_speechReady) {
+      _showSuccessSnackBar(
+        isIncome: false,
+        text: "Mic tidak tersedia",
+        subText: "Sila benarkan akses mikrofon / speech.",
+      );
+      return null;
+    }
+
+    _lastWords = "";
+    _isListening = true;
+
+    // show your dialog
+    _showListeningDialog("Sedang mendengar...", "Cakap sekarang ya...");
+
+    await _speech.listen(
+      listenMode: stt.ListenMode.confirmation,
+      onResult: (result) {
+        setState(() {
+          _lastWords = result.recognizedWords;
+        });
+      },
+      localeId: "ms_MY", // Malay. Try "en_US" if needed.
+    );
+
+    // stop after maxDuration
+    await Future.delayed(maxDuration);
+
+    await _speech.stop();
+
+    _isListening = false;
+
+    if (!mounted) return null;
+    Navigator.pop(context); // close dialog
+
+    final text = _lastWords.trim();
+    return text.isEmpty ? null : text;
+  }
+
+  Future<void> _handleVoiceSales() async {
+    final transcript = await _listenOnce();
+    if (transcript == null) {
+      _showSuccessSnackBar(
+        isIncome: false,
+        text: "Tak dengar apa-apa",
+        subText: "Cuba lagi, cakap lebih jelas 🙂",
+      );
+      return;
+    }
+
+    // TEMP: for now just show what user said.
+    // Next step: send transcript to Gemini for parsing.
+    _showSuccessSnackBar(
+      isIncome: true,
+      text: "Anda cakap:",
+      subText: transcript,
+    );
+
+    // (Optional) You can still insert a placeholder transaction for testing:
+    // await _saveTransactionToFirebase(title: ..., amount: ..., isIncome: true);
+  }
+
+  Future<void> _handleVoiceCost() async {
+    final transcript = await _listenOnce();
+    if (transcript == null) {
+      _showSuccessSnackBar(
+        isIncome: false,
+        text: "Tak dengar apa-apa",
+        subText: "Cuba lagi, cakap lebih jelas 🙂",
+      );
+      return;
+    }
+
+    _showSuccessSnackBar(
+      isIncome: false,
+      text: "Anda cakap:",
+      subText: transcript,
     );
   }
 
@@ -284,7 +507,12 @@ class _DashboardPageState extends State<DashboardPage> {
         children: [
           // 1. Header (Untung Bersih)
           Container(
-            padding: const EdgeInsets.only(top: 60, bottom: 50, left: 24, right: 24),
+            padding: const EdgeInsets.only(
+              top: 60,
+              bottom: 50,
+              left: 24,
+              right: 24,
+            ),
             decoration: const BoxDecoration(
               color: AppColors.jungleGreen,
               borderRadius: BorderRadius.only(
@@ -292,42 +520,62 @@ class _DashboardPageState extends State<DashboardPage> {
                 bottomRight: Radius.circular(30),
               ),
               boxShadow: [
-                 BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, 5))
-              ]
+                BoxShadow(
+                  color: Colors.black26,
+                  blurRadius: 10,
+                  offset: Offset(0, 5),
+                ),
+              ],
             ),
             child: Column(
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                   // 讓頭像可以被點擊
-GestureDetector(
-  onTap: () {
-    // 點擊後跳轉到 ProfilePage
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const ProfilePage()),
-    );
-  },
-  child: Container(
-    padding: const EdgeInsets.all(2),
-    decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-    child: const CircleAvatar(
-      radius: 24,
-      backgroundImage: NetworkImage('https://tse3.mm.bing.net/th/id/OIP.kp5huS9dTrQdcZH_FcqMTQHaHa?rs=1&pid=ImgDetMain&o=7&rm=3'), 
-    ),
-  ),
-),
+                    // 讓頭像可以被點擊
+                    GestureDetector(
+                      onTap: () {
+                        // 點擊後跳轉到 ProfilePage
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const ProfilePage(),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const CircleAvatar(
+                          radius: 24,
+                          backgroundImage: NetworkImage(
+                            'https://tse3.mm.bing.net/th/id/OIP.kp5huS9dTrQdcZH_FcqMTQHaHa?rs=1&pid=ImgDetMain&o=7&rm=3',
+                          ),
+                        ),
+                      ),
+                    ),
                     Stack(
                       children: [
-                        const Icon(Icons.notifications_outlined, color: Colors.white, size: 30),
+                        const Icon(
+                          Icons.notifications_outlined,
+                          color: Colors.white,
+                          size: 30,
+                        ),
                         Positioned(
-                          right: 2, top: 2,
+                          right: 2,
+                          top: 2,
                           child: Container(
-                            width: 10, height: 10,
-                            decoration: const BoxDecoration(color: AppColors.warningRed, shape: BoxShape.circle),
+                            width: 10,
+                            height: 10,
+                            decoration: const BoxDecoration(
+                              color: AppColors.warningRed,
+                              shape: BoxShape.circle,
+                            ),
                           ),
-                        )
+                        ),
                       ],
                     ),
                   ],
@@ -340,34 +588,57 @@ GestureDetector(
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text("Untung Bersih",
-                            style: TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.w500)),
+                        const Text(
+                          "Untung Bersih",
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                         const SizedBox(height: 5),
-                        Text("RM ${totalUntung.toStringAsFixed(2)}", 
-                            style: const TextStyle(color: Colors.white, fontSize: 42, fontWeight: FontWeight.w900)),
+                        Text(
+                          "RM ${totalUntung.toStringAsFixed(2)}",
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 42,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
                       ],
                     ),
                     Column(
                       children: [
                         SizedBox(
-                          width: 60, height: 60,
+                          width: 60,
+                          height: 60,
                           child: Stack(
                             alignment: Alignment.center,
                             children: [
-                               CircularProgressIndicator(
+                              CircularProgressIndicator(
                                 value: (totalUntung / 200).clamp(0.0, 1.0),
                                 backgroundColor: Colors.white24,
-                                color: AppColors.lightOrange, 
+                                color: AppColors.lightOrange,
                                 strokeWidth: 6,
                               ),
-                              Text("${((totalUntung/200)*100).toInt()}%", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                              Text(
+                                "${((totalUntung / 200) * 100).toInt()}%",
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
                             ],
                           ),
                         ),
                         const SizedBox(height: 8),
-                        const Text("Target", style: TextStyle(color: Colors.white70, fontSize: 12)),
+                        const Text(
+                          "Target",
+                          style: TextStyle(color: Colors.white70, fontSize: 12),
+                        ),
                       ],
-                    )
+                    ),
                   ],
                 ),
               ],
@@ -376,18 +647,27 @@ GestureDetector(
 
           // 2. AI Warning Card
           Transform.translate(
-            offset: const Offset(0, -30), 
+            offset: const Offset(0, -30),
             child: GestureDetector(
-              onTap: widget.onScanTap, 
+              onTap: widget.onScanTap,
               child: Container(
                 margin: const EdgeInsets.symmetric(horizontal: 20),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(15),
-                  border: Border.all(color: AppColors.warningRed.withOpacity(0.3)), 
+                  border: Border.all(
+                    color: AppColors.warningRed.withOpacity(0.3),
+                  ),
                   boxShadow: [
-                    BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 15, offset: const Offset(0, 5))
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.08),
+                      blurRadius: 15,
+                      offset: const Offset(0, 5),
+                    ),
                   ],
                 ),
                 child: Row(
@@ -398,25 +678,44 @@ GestureDetector(
                         color: AppColors.warningRed.withOpacity(0.1),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.campaign_rounded, color: AppColors.warningRed, size: 24),
+                      child: const Icon(
+                        Icons.campaign_rounded,
+                        color: AppColors.warningRed,
+                        size: 24,
+                      ),
                     ),
                     const SizedBox(width: 15),
                     const Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text("Amaran AI (Gemini)", 
-                            style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold)),
+                          Text(
+                            "Amaran AI (Gemini)",
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                           SizedBox(height: 2),
-                          Text("Telur naik harga! Ketik untuk lihat.", 
-                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.black87),
-                            maxLines: 2, 
+                          Text(
+                            "Telur naik harga! Ketik untuk lihat.",
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                            maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
                     ),
-                    const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
+                    const Icon(
+                      Icons.arrow_forward_ios,
+                      size: 14,
+                      color: Colors.grey,
+                    ),
                   ],
                 ),
               ),
@@ -440,26 +739,40 @@ GestureDetector(
                 const SizedBox(width: 15),
                 Expanded(
                   child: GestureDetector(
-                    onTap: _simulateSalesInput,       // Single Tap -> Sales
-                    onLongPress: _simulateCostInput,  // Long Press -> Cost
+                    //onTap: _simulateSalesInput, // Single Tap -> Sales
+                    //onLongPress: _simulateCostInput, // Long Press -> Cost
+                    onTap: _handleVoiceSales,
+                    onLongPress: _handleVoiceCost,
                     child: Container(
                       height: 160,
                       decoration: BoxDecoration(
                         color: AppColors.lightOrange,
                         borderRadius: BorderRadius.circular(25),
                         boxShadow: [
-                          BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 5))
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 10,
+                            offset: const Offset(0, 5),
+                          ),
                         ],
                       ),
                       child: const Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.mic_rounded, size: 50, color: Colors.black),
+                          Icon(
+                            Icons.mic_rounded,
+                            size: 50,
+                            color: Colors.black,
+                          ),
                           SizedBox(height: 10),
                           Text(
-                            "Cakap\n(Jual / Beli)", 
+                            "Cakap\n(Jual / Beli)",
                             textAlign: TextAlign.center,
-                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black),
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                            ),
                           ),
                         ],
                       ),
@@ -479,38 +792,51 @@ GestureDetector(
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text("Urusniaga Terkini",
-                        style: TextStyle(color: AppColors.jungleGreen, fontSize: 20, fontWeight: FontWeight.w800)),
-                    
+                    const Text(
+                      "Urusniaga Terkini",
+                      style: TextStyle(
+                        color: AppColors.jungleGreen,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+
                     // Navigation to History Page
                     InkWell(
                       onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => TransactionHistoryPage(
-                                transactions: transactions // Pass the current list
-                              ),
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => TransactionHistoryPage(
+                              transactions:
+                                  transactions, // Pass the current list
                             ),
-                          );
+                          ),
+                        );
                       },
                       child: const Padding(
                         padding: EdgeInsets.all(4.0),
-                        child: Text("Lihat Semua >", 
-                          style: TextStyle(color: Colors.grey, fontSize: 14, fontWeight: FontWeight.bold)),
+                        child: Text(
+                          "Lihat Semua >",
+                          style: TextStyle(
+                            color: Colors.grey,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 15),
-                
+
                 // 🔥 动态生成列表 (关键修改：传入 time 和 onTap)
                 ...transactions.map((tx) {
                   return Padding(
-                    padding: const EdgeInsets.only(bottom: 12), 
+                    padding: const EdgeInsets.only(bottom: 12),
                     child: TransactionTile(
-                      title: tx.title, 
-                      amount: tx.amount, 
+                      title: tx.title,
+                      amount: tx.amount,
                       isIncome: tx.isIncome,
                       time: tx.time, // ✅ 传入时间 (必须！)
                       successColor: AppColors.successGreen,
@@ -518,16 +844,16 @@ GestureDetector(
                       onTap: () {
                         // ✅ 点击跳转到详情页 (必须！)
                         Navigator.push(
-                          context, 
+                          context,
                           MaterialPageRoute(
-                            builder: (context) => TransactionDetailPage(transaction: tx)
-                          )
+                            builder: (context) =>
+                                TransactionDetailPage(transaction: tx),
+                          ),
                         );
                       },
                     ),
                   );
                 }).toList(),
-
               ],
             ),
           ),
