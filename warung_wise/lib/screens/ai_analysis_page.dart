@@ -599,7 +599,7 @@ Future<void> _loadData() async {
         physics: const NeverScrollableScrollPhysics(),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
-          childAspectRatio: 1.2,
+          childAspectRatio: 0.7,
           mainAxisSpacing: 4,
           crossAxisSpacing: 4,
         ),
