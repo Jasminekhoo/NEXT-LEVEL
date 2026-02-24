@@ -1,9 +1,10 @@
 import 'dart:convert';               // jsonEncode / jsonDecode
 import 'package:http/http.dart' as http;  // http.post
+import '../api_keys.dart';
 
 class GeminiService {
 
-  static const String _apiKey = "AIzaSyC4_ceYmSJhMPw0wmvo0M1xWoOkfhOfwNk";
+static const String _apiKey = ApiKeys.geminiKey;
 
   static Future<double?> getSuggestedPrice({
     required String itemName,

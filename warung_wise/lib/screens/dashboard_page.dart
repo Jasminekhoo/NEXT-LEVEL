@@ -175,7 +175,7 @@ class _DashboardPageState extends State<DashboardPage> {
   double _smartExtractAmount(String text, bool isSales) {
     String lowerText = text.toLowerCase();
     
-    // 1. 先用正则抓取数字（无论是中文的 "sepuluh" 还是数字 "10"，SpeechToText 通常会转成数字）
+    // 1. 先用正则抓取数字
     final RegExp regExp = RegExp(r'\d+(\.\d{1,2})?');
     final match = regExp.firstMatch(lowerText);
     
@@ -206,7 +206,7 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   // ==========================================
-  // 🟢 场景 A: 语音记收入 (Jual)  
+  // 🟢 场景 A: 语音记收入 (Jual)  - 升级版：智能利润计算
   // ==========================================
   Future<void> _handleVoiceSales() async {
     final transcript = await _listenOnce();
@@ -219,16 +219,22 @@ class _DashboardPageState extends State<DashboardPage> {
     if (!mounted) return;
     Navigator.pop(context);
 
-    // 🧠 使用智能解析计算最终金额
-    double untungBaru = _smartExtractAmount(transcript, true);
+    // 1. 算出【总销售额 Jualan】
+    double jumlahJualan = _smartExtractAmount(transcript, true);
+    
+    // 🌟 2. 核心商业逻辑：自动计算【净利润 Untung Bersih】 (假设 40% 的利润率)
+    double untungBersih = jumlahJualan * 0.40;
 
     setState(() {
-      totalUntung += untungBaru;
+      // 顶部大数字只加上【净利润】
+      totalUntung += untungBersih;
+      
+      // 下方流水账显示【总销售额】
       transactions.insert(
         0,
         Transaction(
           title: "Jual (Suara): $transcript",
-          amount: "+ RM ${untungBaru.toStringAsFixed(2)}",
+          amount: "+ RM ${jumlahJualan.toStringAsFixed(2)}",
           isIncome: true,
           date: "Hari Ini",
           time: _getCurrentTime(), 
@@ -236,19 +242,20 @@ class _DashboardPageState extends State<DashboardPage> {
       );
     });
 
-    // 后台同步到 Firebase
+    // 后台同步到 Firebase (同步销售额)
     fs.FirebaseFirestore.instance.collection('transactions').add({
       'title': "Jual (Suara): $transcript",
-      'amount': "+ RM ${untungBaru.toStringAsFixed(2)}",
+      'amount': "+ RM ${jumlahJualan.toStringAsFixed(2)}",
       'isIncome': true,
       'timestamp': fs.FieldValue.serverTimestamp(),
       'time': _getCurrentTime(),
     });
 
+    // 弹出提示框，告诉用户 AI 帮他算了利润
     _showSuccessSnackBar(
       isIncome: true,
-      text: "Rekod Berjaya",
-      subText: "Gemini: Untung bersih +RM ${untungBaru.toStringAsFixed(2)} direkodkan.",
+      text: "Jualan RM ${jumlahJualan.toStringAsFixed(2)} direkod",
+      subText: "AI mengira: Untung Bersih +RM ${untungBersih.toStringAsFixed(2)}",
     );
   }
 
