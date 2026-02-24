@@ -2,17 +2,17 @@ import 'dart:convert';               // jsonEncode / jsonDecode
 import 'package:http/http.dart' as http;  // http.post
 
 class GeminiService {
-  static const String _apiKey = "AIzaSyCD7Srvv1n4dSb21YrGQdMgJoGm-VYV3jw";
 
-  /// 增加 modelName 参数，可选，默认使用 gemini-flash-latest
+  static const String _apiKey = "AIzaSyC4_ceYmSJhMPw0wmvo0M1xWoOkfhOfwNk";
+
   static Future<double?> getSuggestedPrice({
     required String itemName,
     required double lastPrice,
     required String category,
-    String modelName = "models/gemini-flash-latest", // ✅ 默认模型
   }) async {
-    final url = Uri.parse(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=YOUR_API_KEY",
+    
+ final url = Uri.parse(
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=$_apiKey",
     );
 
     final prompt = """
@@ -47,7 +47,7 @@ Return updated market price:
             }
           ]
         }),
-      ).timeout(const Duration(seconds: 10));
+      ).timeout(const Duration(seconds: 30));
 
       print("📡 状态码: ${response.statusCode}");
       print("📡 返回: ${response.body}");
@@ -59,11 +59,14 @@ Return updated market price:
 
         if (text != null) {
           final cleaned = text.trim().replaceAll(RegExp(r'[^0-9.]'), '');
+          print("✅ [Gemini API] get the price: $cleaned");
           return double.tryParse(cleaned);
         }
+      } else {
+        print("❌ API、 failed with status code: ${response.statusCode}");
       }
     } catch (e) {
-      print("❌ 异常: $e");
+      print("❌ Error: $e");
     }
 
     return null;
