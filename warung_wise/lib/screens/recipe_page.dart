@@ -512,13 +512,15 @@ class _RecipePageState extends State<RecipePage> {
                     double portionCost;
                     String unitLabel;
 
-                    if (ing.category.toLowerCase().contains("telur") &&
-                        ing.name.toLowerCase().contains("telur")) {
-                      portionCost = ing.gram * pricePerUnit; // biji
-                      unitLabel = "biji";
+                    if (ing.unit == 'biji') {
+                    portionCost = ing.gram * pricePerUnit;
+                    unitLabel = "biji";
+                    } else if (ing.unit == 'kg') {
+                    portionCost = ing.gram * pricePerUnit;
+                    unitLabel = "kg";
                     } else {
-                      portionCost = (ing.gram / 1000) * pricePerUnit; // kg
-                      unitLabel = "g";
+                    portionCost = (ing.gram / 1000) * pricePerUnit;
+                    unitLabel = "g";
                     }
 
                     return Row(

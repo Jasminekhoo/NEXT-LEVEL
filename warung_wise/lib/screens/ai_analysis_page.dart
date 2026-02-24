@@ -53,6 +53,7 @@ class _AiAnalysisPageState extends State<AiAnalysisPage>
   // List<ExtractedItem> _extractedItems = [];
   bool _isExtracting = true;
   bool _isLoading = true;
+  bool _isCancelled = false;
   // bool _isConfirmed = false;
   final TextEditingController _newItemController = TextEditingController();
   DateTime _selectedDate = DateTime.now();
@@ -62,72 +63,146 @@ class _AiAnalysisPageState extends State<AiAnalysisPage>
     "Memuatkan harga semasa...",
   );
 
-  Future<void> _showLoadingDialog() async {
-    showDialog(
-      context: context,
-      barrierDismissible: false, // 用户无法点击外部关闭
-      builder: (_) => WillPopScope(
-        onWillPop: () async => false, // 禁止返回键关闭
-        child: Material(
-          color: Colors.black26, // 半透明背景，突出卡片
-          child: Center(
-            child: Container(
-              padding: const EdgeInsets.all(24),
-              width: 220,
-              decoration: BoxDecoration(
-                color: AppColors.offWhite, // 卡片浅色背景
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black26,
-                    blurRadius: 8,
-                    offset: Offset(0, 4),
+  // Future<void> _showLoadingDialog() async {
+  //   showDialog(
+  //     context: context,
+  //     barrierDismissible: false, // 用户无法点击外部关闭
+  //     builder: (_) => WillPopScope(
+  //       onWillPop: () async => false, // 禁止返回键关闭
+  //       child: Material(
+  //         color: Colors.black26, // 半透明背景，突出卡片
+  //         child: Center(
+  //           child: Container(
+  //             padding: const EdgeInsets.all(24),
+  //             width: 220,
+  //             decoration: BoxDecoration(
+  //               color: AppColors.offWhite, // 卡片浅色背景
+  //               borderRadius: BorderRadius.circular(20),
+  //               boxShadow: [
+  //                 BoxShadow(
+  //                   color: Colors.black26,
+  //                   blurRadius: 8,
+  //                   offset: Offset(0, 4),
+  //                 ),
+  //               ],
+  //             ),
+  //             child: Column(
+  //               mainAxisSize: MainAxisSize.min,
+  //               children: [
+  //                 RotationTransition(
+  //                   turns: _controller,
+  //                   child: Icon(
+  //                     Icons.sync,
+  //                     size: 50,
+  //                     color: AppColors.jungleGreen,
+  //                   ),
+  //                 ),
+  //                 const SizedBox(height: 16),
+  //                 ValueListenableBuilder<String>(
+  //                   valueListenable: _loadingMessage,
+  //                   builder: (_, value, __) => Text(
+  //                     value,
+  //                     style: TextStyle(
+  //                       color: AppColors.jungleGreen,
+  //                       fontSize: 16,
+  //                       fontWeight: FontWeight.bold,
+  //                     ),
+  //                     textAlign: TextAlign.center,
+  //                   ),
+  //                 ),
+  //                 const SizedBox(height: 16),
+  //                 ClipRRect(
+  //                   borderRadius: BorderRadius.circular(6),
+  //                   child: SizedBox(
+  //                     height: 6,
+  //                     child: LinearProgressIndicator(
+  //                       color: AppColors.jungleGreen,
+  //                       backgroundColor: Colors.black12,
+  //                     ),
+  //                   ),
+  //                 ),
+  //               ],
+  //             ),
+  //           ),
+  //         ),
+  //       ),
+  //     ),
+  //   );
+  // }
+
+Future<void> _showLoadingDialog() async {
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (_) => WillPopScope(
+      onWillPop: () async => false,
+      child: Material(
+        color: Colors.black26,
+        child: Center(
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            width: 240,
+            decoration: BoxDecoration(
+              color: AppColors.offWhite,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black26,
+                  blurRadius: 8,
+                  offset: Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                RotationTransition(
+                  turns: _controller,
+                  child: Icon(
+                    Icons.sync,
+                    size: 50,
+                    color: AppColors.jungleGreen,
                   ),
-                ],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  RotationTransition(
-                    turns: _controller,
-                    child: Icon(
-                      Icons.sync,
-                      size: 50,
+                ),
+                const SizedBox(height: 16),
+                ValueListenableBuilder<String>(
+                  valueListenable: _loadingMessage,
+                  builder: (_, value, __) => Text(
+                    value,
+                    style: TextStyle(
                       color: AppColors.jungleGreen,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // 🔴 BATAL BUTTON
+                TextButton(
+                  onPressed: () {
+                    _isCancelled = true;
+                    // 关闭 loading dialog
+                    Navigator.of(context, rootNavigator: true).pop();
+
+                  },
+                  child: const Text(
+                    "Batal",
+                    style: TextStyle(
+                      color: Colors.red,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  ValueListenableBuilder<String>(
-                    valueListenable: _loadingMessage,
-                    builder: (_, value, __) => Text(
-                      value,
-                      style: TextStyle(
-                        color: AppColors.jungleGreen,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(6),
-                    child: SizedBox(
-                      height: 6,
-                      child: LinearProgressIndicator(
-                        color: AppColors.jungleGreen,
-                        backgroundColor: Colors.black12,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   // 更新 loading 文字
   void _updateLoadingMessage(String msg) {
@@ -151,9 +226,16 @@ class _AiAnalysisPageState extends State<AiAnalysisPage>
       vsync: this,
     )..repeat(reverse: true);
 
+    _isCancelled = false;
+
     // ⚡ 核心优化：UI 渲染首帧后再加载数据
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _showLoadingDialog(); // 先显示 dialog + 动画
+
+      if (_isCancelled){
+        if (mounted) Navigator.of(context).pop();
+        return;
+      }
 
       Future(() async {
         await _loadData(); // 异步加载数据，不阻塞 UI
@@ -346,109 +428,116 @@ Future<void> _loadData() async {
 */
 
   Future<void> _loadData() async {
-    setState(() => _isLoading = true);
+  if (_isCancelled) return;
 
-    try {
-      // ---------------------------------------------------------
-      // A. 🌟 获取 Firebase 现实数据 (最新价格库)
-      // ---------------------------------------------------------
-      final firebaseSnapshot = await fs.FirebaseFirestore.instance
-          .collection('ingredient_prices')
-          .get();
+  setState(() => _isLoading = true);
 
-      // 将 Firebase 数据转为 Map，方便后续快速匹配
-      // Key: 食材小写名称, Value: 价格数据 Map
-      final Map<String, dynamic> firebasePriceMap = {
-        for (var doc in firebaseSnapshot.docs) doc.id: doc.data(),
-      };
+  try {
+    // ---------------------------------------------------------
+    // A. Firebase 获取现实数据
+    // ---------------------------------------------------------
+    final firebaseSnapshot = await fs.FirebaseFirestore.instance
+        .collection('ingredient_prices')
+        .get();
 
-      // ---------------------------------------------------------
-      // B. 获取本地 CSV 基础历史数据 (作为参考)
-      // ---------------------------------------------------------
-      final currentMonthData = await _priceService.getLatestPrices();
-      final Map<String, PriceRecord> csvMap = {
-        for (var rec in currentMonthData) rec.itemName: rec,
-      };
+    if (_isCancelled) return;
 
-      List<PriceRecord> finalList = [];
-      final entries = PriceServiceCsv.itemLookup.entries.toList();
+    final Map<String, dynamic> firebasePriceMap = {
+      for (var doc in firebaseSnapshot.docs) doc.id: doc.data(),
+    };
 
-      // ---------------------------------------------------------
-      // C. 数据合并逻辑 (现实优先 -> AI/CSV 兜底)
-      // ---------------------------------------------------------
-      for (var entry in entries) {
-        final String itemName = entry.value['name']!;
-        final String category = entry.value['cat']!;
-        final String lookupKey = itemName.trim().toLowerCase();
+    // ---------------------------------------------------------
+    // B. 获取 CSV 历史数据
+    // ---------------------------------------------------------
+    final currentMonthData = await _priceService.getLatestPrices();
 
-        PriceRecord? csvRecord = csvMap[itemName];
+    if (_isCancelled) return;
 
-        double basePrice = csvRecord?.oldPrice ?? 0;
-        if (basePrice <= 0) {
-          basePrice = (category == "Sayur" || category == "Buah") ? 6.5 : 8.0;
-        }
+    final Map<String, PriceRecord> csvMap = {
+      for (var rec in currentMonthData) rec.itemName: rec,
+    };
 
-        double currentPrice;
-        String dateLabel;
-        bool isAi;
+    List<PriceRecord> finalList = [];
+    final entries = PriceServiceCsv.itemLookup.entries.toList();
 
-        // 🚨 判断逻辑：如果 Firebase 有记录，说明是用户现实扫描/输入的
-        if (firebasePriceMap.containsKey(lookupKey)) {
-          currentPrice = (firebasePriceMap[lookupKey]['pricePerKg'] as num)
-              .toDouble();
+    // ---------------------------------------------------------
+    // C. 合并逻辑
+    // ---------------------------------------------------------
+    for (var entry in entries) {
+      if (_isCancelled) return;
 
-          // 处理 Firebase 时间戳转字符串
-          var ts = firebasePriceMap[lookupKey]['lastUpdated'];
-          if (ts is fs.Timestamp) {
-            dateLabel = _formatDate(ts.toDate().toIso8601String());
-          } else {
-            dateLabel = "Dikemas kini baru-baru ini";
-          }
+      final String itemName = entry.value['name']!;
+      final String category = entry.value['cat']!;
+      final String lookupKey = itemName.trim().toLowerCase();
 
-          isAi = false; // 这是真实数据，不是 AI 模拟的
-        }
-        // 🚨 否则，使用 AI 模拟预测
-        else {
-          currentPrice = await getAiSuggestedPrice(
-            itemName,
-            basePrice,
-            category,
-          );
-          dateLabel = "Ramalan AI Gemini";
-          isAi = true;
-        }
+      PriceRecord? csvRecord = csvMap[itemName];
 
-        finalList.add(
-          PriceRecord(
-            itemName: itemName,
-            oldPrice: basePrice, // 这里的 oldPrice 可以作为对比基准
-            newPrice: currentPrice,
-            history: [basePrice, currentPrice], // 用于 BarChart 显示
-            unit: "kg/unit",
-            date: dateLabel,
-            category: category,
-            isAiPrice: isAi,
-            aiSuggestedPrice: isAi ? currentPrice : 0,
-          ),
-        );
-
-        // 更新进度
-        _updateLoadingMessage(
-          "Memuatkan ${finalList.length}/${entries.length} item...",
-        );
+      double basePrice = csvRecord?.oldPrice ?? 0;
+      if (basePrice <= 0) {
+        basePrice = (category == "Sayur" || category == "Buah") ? 6.5 : 8.0;
       }
 
-      if (!mounted) return;
+      double currentPrice;
+      String dateLabel;
+      bool isAi;
 
-      setState(() {
-        _apiPrices = finalList;
-        _isLoading = false;
-      });
-    } catch (e) {
-      print("‼️ _loadData failed: $e");
-      if (mounted) setState(() => _isLoading = false);
+      if (firebasePriceMap.containsKey(lookupKey)) {
+        currentPrice =
+            (firebasePriceMap[lookupKey]['pricePerKg'] as num).toDouble();
+
+        var ts = firebasePriceMap[lookupKey]['lastUpdated'];
+        if (ts is fs.Timestamp) {
+          dateLabel = _formatDate(ts.toDate().toIso8601String());
+        } else {
+          dateLabel = "Dikemas kini baru-baru ini";
+        }
+
+        isAi = false;
+      } else {
+        currentPrice = await getAiSuggestedPrice(
+          itemName,
+          basePrice,
+          category,
+        );
+
+        if (_isCancelled) return;
+
+        dateLabel = "Ramalan AI Gemini";
+        isAi = true;
+      }
+
+      finalList.add(
+        PriceRecord(
+          itemName: itemName,
+          oldPrice: basePrice,
+          newPrice: currentPrice,
+          history: [basePrice, currentPrice],
+          unit: "kg/unit",
+          date: dateLabel,
+          category: category,
+          isAiPrice: isAi,
+          aiSuggestedPrice: isAi ? currentPrice : 0,
+        ),
+      );
+
+      _updateLoadingMessage(
+        "Memuatkan ${finalList.length}/${entries.length} item...",
+      );
     }
+
+    if (!mounted || _isCancelled) return;
+
+    setState(() {
+      _apiPrices = finalList;
+      _isLoading = false;
+    });
+  } catch (e) {
+    if (!mounted) return;
+
+    setState(() => _isLoading = false);
+    print("‼️ _loadData failed: $e");
   }
+}
 
   // ===================== Scaffold =====================
   @override
