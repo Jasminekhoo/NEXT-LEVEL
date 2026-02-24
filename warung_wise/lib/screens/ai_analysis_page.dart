@@ -32,6 +32,7 @@ class _AiAnalysisPageState extends State<AiAnalysisPage>
   ];
 
   String _selectedCategory = "";
+  bool _isCancelled = false; // 🔴 新增：用于取消标志
 
   Map<String, List<PriceRecord>> _getGroupedPrices() {
     Map<String, List<PriceRecord>> grouped = {};
@@ -50,6 +51,7 @@ class _AiAnalysisPageState extends State<AiAnalysisPage>
 
   final ValueNotifier<String> _loadingMessage = ValueNotifier("Memuatkan harga semasa...");
 
+  // 🔴 整合版：包含 Batal 按钮的对话框
   Future<void> _showLoadingDialog() async {
     showDialog(
       context: context,
@@ -61,7 +63,7 @@ class _AiAnalysisPageState extends State<AiAnalysisPage>
           child: Center(
             child: Container(
               padding: const EdgeInsets.all(24),
-              width: 220,
+              width: 240, // 稍微加宽一点以适应按钮
               decoration: BoxDecoration(
                 color: AppColors.offWhite,
                 borderRadius: BorderRadius.circular(20),
@@ -93,6 +95,21 @@ class _AiAnalysisPageState extends State<AiAnalysisPage>
                       child: LinearProgressIndicator(color: AppColors.jungleGreen, backgroundColor: Colors.black12),
                     ),
                   ),
+                  const SizedBox(height: 20),
+                  // 🔴 BATAL BUTTON
+                  TextButton(
+                    onPressed: () {
+                      _isCancelled = true;
+                      Navigator.of(context, rootNavigator: true).pop();
+                    },
+                    child: const Text(
+                      "Batal",
+                      style: TextStyle(
+                        color: Colors.red,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -111,6 +128,7 @@ class _AiAnalysisPageState extends State<AiAnalysisPage>
   @override
   void initState() {
     super.initState();
+    _isCancelled = false; // 初始化重置
     _selectedCategory = _categories.first['id']!;
     _controller = AnimationController(duration: const Duration(milliseconds: 1500), vsync: this)..repeat(reverse: true);
 
@@ -132,6 +150,7 @@ class _AiAnalysisPageState extends State<AiAnalysisPage>
 
   Future<double> getAiSuggestedPrice(String itemName, double lastPrice, String category) async {
     try {
+      if (_isCancelled) return lastPrice;
       await Future.delayed(const Duration(milliseconds: 300));
       double? aiPrice = await GeminiService.getSuggestedPrice(
         itemName: itemName,
@@ -153,11 +172,16 @@ class _AiAnalysisPageState extends State<AiAnalysisPage>
   }
 
   Future<void> _loadData() async {
+    if (_isCancelled) return;
     setState(() => _isLoading = true);
     try {
       final firebaseSnapshot = await fs.FirebaseFirestore.instance.collection('ingredient_prices').get();
+      if (_isCancelled) return;
+
       final Map<String, dynamic> firebasePriceMap = {for (var doc in firebaseSnapshot.docs) doc.id: doc.data()};
       final currentMonthData = await _priceService.getLatestPrices();
+      if (_isCancelled) return;
+
       final Map<String, PriceRecord> csvMap = {for (var rec in currentMonthData) rec.itemName: rec};
 
       List<PriceRecord> finalList = [];
@@ -165,6 +189,8 @@ class _AiAnalysisPageState extends State<AiAnalysisPage>
       int aiCallCount = 0;
 
       for (var entry in entries) {
+        if (_isCancelled) return; // 🔴 在循环内也检查
+
         final String itemName = entry.value['name']!;
         final String category = entry.value['cat']!;
         final String lookupKey = itemName.trim().toLowerCase();
@@ -195,9 +221,8 @@ class _AiAnalysisPageState extends State<AiAnalysisPage>
             dateLabel = "Ramalan AI Gemini";
             isAi = true;
           } else {
-            // 🌟 高智商 Mock Data 算法
             final random = Random(itemName.hashCode);
-            double fluctuation = (random.nextDouble() * 0.40) - 0.15; // -15% 到 +25%
+            double fluctuation = (random.nextDouble() * 0.40) - 0.15;
             currentPrice = double.parse((basePrice * (1 + fluctuation)).toStringAsFixed(2));
             if (fluctuation.abs() < 0.05) currentPrice = basePrice;
             dateLabel = "Data pasaran terkini";
@@ -219,7 +244,7 @@ class _AiAnalysisPageState extends State<AiAnalysisPage>
         _updateLoadingMessage("Memuatkan ${finalList.length}/${entries.length} item...");
       }
 
-      if (!mounted) return;
+      if (!mounted || _isCancelled) return;
       setState(() { _apiPrices = finalList; _isLoading = false; });
     } catch (e) {
       if (mounted) setState(() => _isLoading = false);
@@ -267,7 +292,6 @@ class _AiAnalysisPageState extends State<AiAnalysisPage>
         physics: const NeverScrollableScrollPhysics(),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
-          // 🔴 關鍵修改：調低到 0.58，確保大卡片能裝下所有 Insight 文字
           childAspectRatio: 0.58, 
           mainAxisSpacing: 8,
           crossAxisSpacing: 8,
@@ -328,7 +352,6 @@ class _AiAnalysisPageState extends State<AiAnalysisPage>
     Color trendColor = (diff > 0) ? Colors.red : ((diff < 0) ? Colors.green : Colors.amber.shade800);
     if (useAi) trendColor = (diff > 0) ? Colors.orange : Colors.blue;
 
-    // 🌟 Actionable Insights
     String insight;
     if (useAi) {
       if (diff > 0) insight = "🤖 AI: Harga dijangka NAIK. Borong awal jika bahan tahan lama.";
@@ -351,7 +374,6 @@ class _AiAnalysisPageState extends State<AiAnalysisPage>
       ),
       child: Stack(
         children: [
-          // 🔴 這裡不使用滾動條，直接展示，卡片高度由 GridView 的 AspectRatio 決定
           Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -364,7 +386,7 @@ class _AiAnalysisPageState extends State<AiAnalysisPage>
               const SizedBox(height: 12),
               if (hasValidData)
                 SizedBox(
-                  height: 100, // 稍微拉高圖表
+                  height: 100,
                   child: BarChart(
                     BarChartData(
                       alignment: BarChartAlignment.spaceAround,
