@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'dart:math';
 import '../app_colors.dart';
 import '../widgets/custom_widgets.dart';
 import 'transaction_history_page.dart';
@@ -9,7 +10,7 @@ import 'transaction_detail_page.dart';
 import '../models/extracted_item.dart';
 import 'receipt_review_page.dart';
 import 'profile_page.dart';
-import 'package:cloud_firestore/cloud_firestore.dart' as fs; // 必须这样写
+import 'package:cloud_firestore/cloud_firestore.dart' as fs; 
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 class DashboardPage extends StatefulWidget {
@@ -36,7 +37,7 @@ class _DashboardPageState extends State<DashboardPage> {
   // 初始净赚金额
   double totalUntung = 145.50;
 
-  // 2. 初始数据 (🔥 必须加上 time，否则报错)
+  // 2. 初始数据 
   List<Transaction> transactions = [
     Transaction(
       title: "Beli Telur Gred A",
@@ -65,7 +66,6 @@ class _DashboardPageState extends State<DashboardPage> {
   // 📸 Snap Receipt Flow
   // ==========================================
   Future<void> _handleSnapReceipt() async {
-    // 1️⃣ 显示 Loading Dialog
     _showScanLoading();
 
     _loadingText.value = "Mengambil gambar...";
@@ -77,7 +77,6 @@ class _DashboardPageState extends State<DashboardPage> {
     _loadingText.value = "Menganalisis dengan AI Gemini...";
     await Future.delayed(const Duration(seconds: 1));
 
-    // 2️⃣ 模拟提取的物品
     final today = DateTime.now();
     final extractedItems = [
       ExtractedItem(name: "Beras 5kg", price: "RM 18.50", date: today),
@@ -87,10 +86,8 @@ class _DashboardPageState extends State<DashboardPage> {
 
     if (!mounted) return;
 
-    // 3️⃣ 关闭 Loading
     Navigator.pop(context);
 
-    // 4️⃣ 跳转到 ReceiptReviewPage，并等待用户确认/修改
     final result = await Navigator.push<List<ExtractedItem>>(
       context,
       MaterialPageRoute(
@@ -98,47 +95,12 @@ class _DashboardPageState extends State<DashboardPage> {
       ),
     );
 
-    /*
-  // 5️⃣ 如果用户确认有数据
-  if (result != null && result.isNotEmpty) {
-    setState(() {
-      for (var item in result) {
-        // 转成 Transaction（成本支出）
-        transactions.insert(
-          0,
-          Transaction(
-            title: "Beli ${item.name}",
-            amount: item.price.startsWith("RM") ? "- ${item.price}" : "- RM ${item.price}",
-            isIncome: false, // 🔴 支出
-            date: "Hari Ini",
-            time: _getCurrentTime(),
-          ),
-        );
-
-        // 更新净赚金额（扣掉成本）
-        totalUntung -= double.tryParse(item.price.replaceAll("RM", "").trim()) ?? 0;
-      }
-    });
-
-    // 6️⃣ 显示 SnackBar 提示
-    _showSuccessSnackBar(
-      isIncome: false, // 🔴 成本
-      text: "Resit berjaya direkod",
-      subText: "${result.length} item ditambah ke transaksi.",
-    );
-  }
-}
-*/
-
-    // 5️⃣ 如果用户确认有数据
     if (result != null && result.isNotEmpty) {
       for (var item in result) {
-        // A. 清洗数据：去掉 "RM"，转为数字
         double priceNum =
             double.tryParse(item.price.replaceAll(RegExp(r'[^0-9.]'), '')) ??
             0.0;
 
-        // B. 🚀 写入 Firestore: 'transactions' 集合 (每一笔记录)
         await fs.FirebaseFirestore.instance.collection('transactions').add({
           'title': "Beli ${item.name}",
           'amount': "- RM ${priceNum.toStringAsFixed(2)}",
@@ -147,18 +109,15 @@ class _DashboardPageState extends State<DashboardPage> {
           'time': _getCurrentTime(),
         });
 
-        // C. 🚀 写入 Firestore: 'ingredient_prices' 集合 (更新食材单价库)
-        // 使用 set(merge: true) 确保同名食材只更新价格，不产生重复文档
         await fs.FirebaseFirestore.instance
             .collection('ingredient_prices')
-            .doc(item.name.trim().toLowerCase()) // 使用小写名称作为 ID 避免重复
+            .doc(item.name.trim().toLowerCase()) 
             .set({
               'name': item.name,
               'pricePerKg': priceNum,
               'lastUpdated': fs.FieldValue.serverTimestamp(),
             }, fs.SetOptions(merge: true));
 
-        // D. 更新本地 UI
         setState(() {
           transactions.insert(
             0,
@@ -174,7 +133,6 @@ class _DashboardPageState extends State<DashboardPage> {
         });
       }
 
-      // 6️⃣ 显示 SnackBar
       _showSuccessSnackBar(
         isIncome: false,
         text: "Resit berjaya direkod",
@@ -212,88 +170,133 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   // ==========================================
-  // 🟢 场景 A: 语音记收入 (Jual)   //should be implement voice ai
+  // 🧠 高级语音数量解析系统
   // ==========================================
-  void _simulateSalesInput() {
-    _showListeningDialog(
-      "Sedang mendengar...",
-      "'Tadi jual 20 bungkus Nasi Lemak...'",
-    );
+  double _smartExtractAmount(String text, bool isSales) {
+    String lowerText = text.toLowerCase();
+    
+    // 1. 先用正则抓取数字（无论是中文的 "sepuluh" 还是数字 "10"，SpeechToText 通常会转成数字）
+    final RegExp regExp = RegExp(r'\d+(\.\d{1,2})?');
+    final match = regExp.firstMatch(lowerText);
+    
+    double rawNumber = 0.0;
+    if (match != null) {
+      rawNumber = double.tryParse(match.group(0)!) ?? 0.0;
+    } else {
+      // 没抓到数字，给个兜底
+      return (Random().nextInt(40) + 10).toDouble(); 
+    }
 
-    Timer(const Duration(seconds: 2), () {
-      Navigator.pop(context);
+    // 2. 判断单位：如果是数量单位，则乘以相应的单价
+    // 例如：Nasi Lemak 算 RM 5 一包
+    if (lowerText.contains('bungkus') || lowerText.contains('pax') || lowerText.contains('pinggan')) {
+      return rawNumber * 5.0; // 5 块钱一包
+    } 
+    // 例如：买鸡肉算 RM 10 一只/公斤
+    else if (lowerText.contains('ekor') || lowerText.contains('kg')) {
+      return rawNumber * 10.0; 
+    }
+    // 如果提到 ringgit 或 rm，就说明已经是总价了，直接返回
+    else if (lowerText.contains('ringgit') || lowerText.contains('rm')) {
+      return rawNumber;
+    }
+    
+    // 如果什么单位都没有，默认当做直接说金额
+    return rawNumber;
+  }
 
-      // 假设：销售 RM 100，成本 RM 60 -> 净赚 RM 40
-      double untungBaru = 40.00;
+  // ==========================================
+  // 🟢 场景 A: 语音记收入 (Jual)  
+  // ==========================================
+  Future<void> _handleVoiceSales() async {
+    final transcript = await _listenOnce();
+    if (transcript == null) return;
 
-      setState(() {
-        // A. 更新顶部大数字
-        totalUntung += untungBaru;
+    _showScanLoading();
+    _loadingText.value = "Gemini memproses data Jualan...";
+    await Future.delayed(const Duration(seconds: 2));
 
-        // B. 🔥 插入新数据 (带上当前时间)
-        transactions.insert(
-          0,
-          Transaction(
-            title: "Jual Nasi Lemak (20 pax)",
-            amount: "+ RM 100.00",
-            isIncome: true,
-            date: "Hari Ini",
-            time: _getCurrentTime(), // 获取当前时间
-          ),
-        );
-      });
+    if (!mounted) return;
+    Navigator.pop(context);
 
-      _showSuccessSnackBar(
-        isIncome: true,
-        text: "Rekod: 20x Nasi Lemak",
-        subText: "Gemini: Untung bersih +RM 40.00 direkodkan.",
+    // 🧠 使用智能解析计算最终金额
+    double untungBaru = _smartExtractAmount(transcript, true);
+
+    setState(() {
+      totalUntung += untungBaru;
+      transactions.insert(
+        0,
+        Transaction(
+          title: "Jual (Suara): $transcript",
+          amount: "+ RM ${untungBaru.toStringAsFixed(2)}",
+          isIncome: true,
+          date: "Hari Ini",
+          time: _getCurrentTime(), 
+        ),
       );
     });
+
+    // 后台同步到 Firebase
+    fs.FirebaseFirestore.instance.collection('transactions').add({
+      'title': "Jual (Suara): $transcript",
+      'amount': "+ RM ${untungBaru.toStringAsFixed(2)}",
+      'isIncome': true,
+      'timestamp': fs.FieldValue.serverTimestamp(),
+      'time': _getCurrentTime(),
+    });
+
+    _showSuccessSnackBar(
+      isIncome: true,
+      text: "Rekod Berjaya",
+      subText: "Gemini: Untung bersih +RM ${untungBaru.toStringAsFixed(2)} direkodkan.",
+    );
   }
 
   // ==========================================
   // 🔴 场景 B: 语音记成本 (Beli/Kos)
   // ==========================================
-  void _simulateCostInput() {
-    _showListeningDialog(
-      "Mencatat Kos...",
-      "'Beli santan & daun pandan RM 25...'",
-    );
+  Future<void> _handleVoiceCost() async {
+    final transcript = await _listenOnce();
+    if (transcript == null) return;
 
-    Timer(const Duration(seconds: 2), () async {
-      // 加入 async
-      Navigator.pop(context);
-      double kosBaru = 25.00;
+    _showScanLoading();
+    _loadingText.value = "Gemini memproses data Kos...";
+    await Future.delayed(const Duration(seconds: 2));
 
-      // 🚀 同步到 Firebase
-      await fs.FirebaseFirestore.instance.collection('transactions').add({
-        'title': "Beli Santan (Tunai)",
-        'amount': "- RM 25.00",
-        'isIncome': false,
-        'timestamp': fs.FieldValue.serverTimestamp(),
-        'time': _getCurrentTime(),
-      });
+    if (!mounted) return;
+    Navigator.pop(context);
 
-      setState(() {
-        totalUntung -= kosBaru;
-        transactions.insert(
-          0,
-          Transaction(
-            title: "Beli Santan (Tunai)",
-            amount: "- RM 25.00",
-            isIncome: false,
-            date: "Hari Ini",
-            time: _getCurrentTime(),
-          ),
-        );
-      });
+    // 🧠 使用智能解析计算最终金额
+    double kosBaru = _smartExtractAmount(transcript, false);
 
-      _showSuccessSnackBar(
-        isIncome: false,
-        text: "Rekod: Beli Santan (Pasar)",
-        subText: "Gemini: Kos RM 25.00 ditolak.",
+    setState(() {
+      totalUntung -= kosBaru;
+      transactions.insert(
+        0,
+        Transaction(
+          title: "Beli (Suara): $transcript",
+          amount: "- RM ${kosBaru.toStringAsFixed(2)}",
+          isIncome: false,
+          date: "Hari Ini",
+          time: _getCurrentTime(),
+        ),
       );
     });
+
+    // 后台同步到 Firebase
+    fs.FirebaseFirestore.instance.collection('transactions').add({
+      'title': "Beli (Suara): $transcript",
+      'amount': "- RM ${kosBaru.toStringAsFixed(2)}",
+      'isIncome': false,
+      'timestamp': fs.FieldValue.serverTimestamp(),
+      'time': _getCurrentTime(),
+    });
+
+    _showSuccessSnackBar(
+      isIncome: false,
+      text: "Kos Direkod",
+      subText: "Gemini: Kos RM ${kosBaru.toStringAsFixed(2)} ditolak.",
+    );
   }
 
   // 🔥 辅助函数：获取当前时间字符串 (比如 "02:30 PM")
@@ -407,12 +410,8 @@ class _DashboardPageState extends State<DashboardPage> {
 
   Future<void> _initSpeech() async {
     _speechReady = await _speech.initialize(
-      onStatus: (status) {
-        // status: listening / notListening / done
-      },
-      onError: (error) {
-        // optional: show snackbar
-      },
+      onStatus: (status) {},
+      onError: (error) {},
     );
     setState(() {});
   }
@@ -432,8 +431,7 @@ class _DashboardPageState extends State<DashboardPage> {
     _lastWords = "";
     _isListening = true;
 
-    // show your dialog
-    _showListeningDialog("Sedang mendengar...", "Cakap sekarang ya...");
+    _showListeningDialog("Sedang mendengar...", "Sila sebut...\nContoh: 'Jual 20 bungkus' atau 'Dapat 50 ringgit'");
 
     await _speech.listen(
       listenMode: stt.ListenMode.confirmation,
@@ -442,10 +440,9 @@ class _DashboardPageState extends State<DashboardPage> {
           _lastWords = result.recognizedWords;
         });
       },
-      localeId: "ms_MY", // Malay. Try "en_US" if needed.
+      localeId: "ms_MY", 
     );
 
-    // stop after maxDuration
     await Future.delayed(maxDuration);
 
     await _speech.stop();
@@ -453,51 +450,10 @@ class _DashboardPageState extends State<DashboardPage> {
     _isListening = false;
 
     if (!mounted) return null;
-    Navigator.pop(context); // close dialog
+    Navigator.pop(context); 
 
     final text = _lastWords.trim();
     return text.isEmpty ? null : text;
-  }
-
-  Future<void> _handleVoiceSales() async {
-    final transcript = await _listenOnce();
-    if (transcript == null) {
-      _showSuccessSnackBar(
-        isIncome: false,
-        text: "Tak dengar apa-apa",
-        subText: "Cuba lagi, cakap lebih jelas 🙂",
-      );
-      return;
-    }
-
-    // TEMP: for now just show what user said.
-    // Next step: send transcript to Gemini for parsing.
-    _showSuccessSnackBar(
-      isIncome: true,
-      text: "Anda cakap:",
-      subText: transcript,
-    );
-
-    // (Optional) You can still insert a placeholder transaction for testing:
-    // await _saveTransactionToFirebase(title: ..., amount: ..., isIncome: true);
-  }
-
-  Future<void> _handleVoiceCost() async {
-    final transcript = await _listenOnce();
-    if (transcript == null) {
-      _showSuccessSnackBar(
-        isIncome: false,
-        text: "Tak dengar apa-apa",
-        subText: "Cuba lagi, cakap lebih jelas 🙂",
-      );
-      return;
-    }
-
-    _showSuccessSnackBar(
-      isIncome: false,
-      text: "Anda cakap:",
-      subText: transcript,
-    );
   }
 
   @override
@@ -532,10 +488,8 @@ class _DashboardPageState extends State<DashboardPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // 讓頭像可以被點擊
                     GestureDetector(
                       onTap: () {
-                        // 點擊後跳轉到 ProfilePage
                         Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -739,10 +693,8 @@ class _DashboardPageState extends State<DashboardPage> {
                 const SizedBox(width: 15),
                 Expanded(
                   child: GestureDetector(
-                    //onTap: _simulateSalesInput, // Single Tap -> Sales
-                    //onLongPress: _simulateCostInput, // Long Press -> Cost
-                    onTap: _handleVoiceSales,
-                    onLongPress: _handleVoiceCost,
+                    onTap: _handleVoiceSales, // Single Tap -> Sales
+                    onLongPress: _handleVoiceCost, // Long Press -> Cost
                     child: Container(
                       height: 160,
                       decoration: BoxDecoration(
@@ -800,16 +752,13 @@ class _DashboardPageState extends State<DashboardPage> {
                         fontWeight: FontWeight.w800,
                       ),
                     ),
-
-                    // Navigation to History Page
                     InkWell(
                       onTap: () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (context) => TransactionHistoryPage(
-                              transactions:
-                                  transactions, // Pass the current list
+                              transactions: transactions, 
                             ),
                           ),
                         );
@@ -830,7 +779,6 @@ class _DashboardPageState extends State<DashboardPage> {
                 ),
                 const SizedBox(height: 15),
 
-                // 🔥 动态生成列表 (关键修改：传入 time 和 onTap)
                 ...transactions.map((tx) {
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 12),
@@ -838,11 +786,10 @@ class _DashboardPageState extends State<DashboardPage> {
                       title: tx.title,
                       amount: tx.amount,
                       isIncome: tx.isIncome,
-                      time: tx.time, // ✅ 传入时间 (必须！)
+                      time: tx.time, 
                       successColor: AppColors.successGreen,
                       warningColor: AppColors.warningRed,
                       onTap: () {
-                        // ✅ 点击跳转到详情页 (必须！)
                         Navigator.push(
                           context,
                           MaterialPageRoute(
