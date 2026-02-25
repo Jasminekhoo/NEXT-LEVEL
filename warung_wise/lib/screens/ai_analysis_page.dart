@@ -1,4 +1,4 @@
-import 'dart:math'; 
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -49,7 +49,9 @@ class _AiAnalysisPageState extends State<AiAnalysisPage>
   bool _isLoading = true;
   final TextEditingController _newItemController = TextEditingController();
 
-  final ValueNotifier<String> _loadingMessage = ValueNotifier("Memuatkan harga semasa...");
+  final ValueNotifier<String> _loadingMessage = ValueNotifier(
+    "Memuatkan harga semasa...",
+  );
 
   // 🔴 整合版：包含 Batal 按钮的对话框
   Future<void> _showLoadingDialog() async {
@@ -68,7 +70,11 @@ class _AiAnalysisPageState extends State<AiAnalysisPage>
                 color: AppColors.offWhite,
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: const [
-                  BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(0, 4)),
+                  BoxShadow(
+                    color: Colors.black26,
+                    blurRadius: 8,
+                    offset: Offset(0, 4),
+                  ),
                 ],
               ),
               child: Column(
@@ -76,14 +82,22 @@ class _AiAnalysisPageState extends State<AiAnalysisPage>
                 children: [
                   RotationTransition(
                     turns: _controller,
-                    child: Icon(Icons.sync, size: 50, color: AppColors.jungleGreen),
+                    child: Icon(
+                      Icons.sync,
+                      size: 50,
+                      color: AppColors.jungleGreen,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   ValueListenableBuilder<String>(
                     valueListenable: _loadingMessage,
                     builder: (_, value, __) => Text(
                       value,
-                      style: TextStyle(color: AppColors.jungleGreen, fontSize: 16, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        color: AppColors.jungleGreen,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -92,7 +106,10 @@ class _AiAnalysisPageState extends State<AiAnalysisPage>
                     borderRadius: BorderRadius.circular(6),
                     child: SizedBox(
                       height: 6,
-                      child: LinearProgressIndicator(color: AppColors.jungleGreen, backgroundColor: Colors.black12),
+                      child: LinearProgressIndicator(
+                        color: AppColors.jungleGreen,
+                        backgroundColor: Colors.black12,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -130,7 +147,10 @@ class _AiAnalysisPageState extends State<AiAnalysisPage>
     super.initState();
     _isCancelled = false; // 初始化重置
     _selectedCategory = _categories.first['id']!;
-    _controller = AnimationController(duration: const Duration(milliseconds: 1500), vsync: this)..repeat(reverse: true);
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    )..repeat(reverse: true);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _showLoadingDialog();
@@ -148,7 +168,11 @@ class _AiAnalysisPageState extends State<AiAnalysisPage>
     super.dispose();
   }
 
-  Future<double> getAiSuggestedPrice(String itemName, double lastPrice, String category) async {
+  Future<double> getAiSuggestedPrice(
+    String itemName,
+    double lastPrice,
+    String category,
+  ) async {
     try {
       if (_isCancelled) return lastPrice;
       await Future.delayed(const Duration(milliseconds: 300));
@@ -164,8 +188,12 @@ class _AiAnalysisPageState extends State<AiAnalysisPage>
         }
         return double.parse(aiPrice.toStringAsFixed(2));
       }
-      double factor = category.contains("Sayur") || category.contains("Buah") ? 1.10 : 1.03;
-      return lastPrice > 0 ? double.parse((lastPrice * factor).toStringAsFixed(2)) : 5.50;
+      double factor = category.contains("Sayur") || category.contains("Buah")
+          ? 1.10
+          : 1.03;
+      return lastPrice > 0
+          ? double.parse((lastPrice * factor).toStringAsFixed(2))
+          : 5.50;
     } catch (e) {
       return lastPrice > 0 ? lastPrice : 5.00;
     }
@@ -175,14 +203,20 @@ class _AiAnalysisPageState extends State<AiAnalysisPage>
     if (_isCancelled) return;
     setState(() => _isLoading = true);
     try {
-      final firebaseSnapshot = await fs.FirebaseFirestore.instance.collection('ingredient_prices').get();
+      final firebaseSnapshot = await fs.FirebaseFirestore.instance
+          .collection('ingredient_prices')
+          .get();
       if (_isCancelled) return;
 
-      final Map<String, dynamic> firebasePriceMap = {for (var doc in firebaseSnapshot.docs) doc.id: doc.data()};
+      final Map<String, dynamic> firebasePriceMap = {
+        for (var doc in firebaseSnapshot.docs) doc.id: doc.data(),
+      };
       final currentMonthData = await _priceService.getLatestPrices();
       if (_isCancelled) return;
 
-      final Map<String, PriceRecord> csvMap = {for (var rec in currentMonthData) rec.itemName: rec};
+      final Map<String, PriceRecord> csvMap = {
+        for (var rec in currentMonthData) rec.itemName: rec,
+      };
 
       List<PriceRecord> finalList = [];
       final entries = PriceServiceCsv.itemLookup.entries.toList();
@@ -198,10 +232,14 @@ class _AiAnalysisPageState extends State<AiAnalysisPage>
         double basePrice = csvRecord?.oldPrice ?? 0;
 
         if (basePrice <= 0) {
-          if (category.contains("Daging")) basePrice = 14.50;
-          else if (category.contains("Sayur")) basePrice = 5.50;
-          else if (category.contains("Buah")) basePrice = 8.00;
-          else basePrice = 4.50;
+          if (category.contains("Daging"))
+            basePrice = 14.50;
+          else if (category.contains("Sayur"))
+            basePrice = 5.50;
+          else if (category.contains("Buah"))
+            basePrice = 8.00;
+          else
+            basePrice = 4.50;
         }
 
         double currentPrice;
@@ -209,13 +247,20 @@ class _AiAnalysisPageState extends State<AiAnalysisPage>
         bool isAi;
 
         if (firebasePriceMap.containsKey(lookupKey)) {
-          currentPrice = (firebasePriceMap[lookupKey]['pricePerKg'] as num).toDouble();
+          currentPrice = (firebasePriceMap[lookupKey]['pricePerKg'] as num)
+              .toDouble();
           var ts = firebasePriceMap[lookupKey]['lastUpdated'];
-          dateLabel = (ts is fs.Timestamp) ? _formatDate(ts.toDate().toIso8601String()) : "Dikemas kini baru-baru ini";
+          dateLabel = (ts is fs.Timestamp)
+              ? _formatDate(ts.toDate().toIso8601String())
+              : "Dikemas kini baru-baru ini";
           isAi = false;
         } else {
           if (aiCallCount < 2) {
-            currentPrice = await getAiSuggestedPrice(itemName, basePrice, category);
+            currentPrice = await getAiSuggestedPrice(
+              itemName,
+              basePrice,
+              category,
+            );
             aiCallCount++;
             await Future.delayed(const Duration(milliseconds: 300));
             dateLabel = "Ramalan AI Gemini";
@@ -223,29 +268,38 @@ class _AiAnalysisPageState extends State<AiAnalysisPage>
           } else {
             final random = Random(itemName.hashCode);
             double fluctuation = (random.nextDouble() * 0.40) - 0.15;
-            currentPrice = double.parse((basePrice * (1 + fluctuation)).toStringAsFixed(2));
+            currentPrice = double.parse(
+              (basePrice * (1 + fluctuation)).toStringAsFixed(2),
+            );
             if (fluctuation.abs() < 0.05) currentPrice = basePrice;
             dateLabel = "Data pasaran terkini";
             isAi = false;
           }
         }
 
-        finalList.add(PriceRecord(
-          itemName: itemName,
-          oldPrice: basePrice,
-          newPrice: currentPrice,
-          history: [basePrice, currentPrice],
-          unit: "kg/unit",
-          date: dateLabel,
-          category: category,
-          isAiPrice: isAi,
-          aiSuggestedPrice: isAi ? currentPrice : 0,
-        ));
-        _updateLoadingMessage("Memuatkan ${finalList.length}/${entries.length} item...");
+        finalList.add(
+          PriceRecord(
+            itemName: itemName,
+            oldPrice: basePrice,
+            newPrice: currentPrice,
+            history: [basePrice, currentPrice],
+            unit: "kg/unit",
+            date: dateLabel,
+            category: category,
+            isAiPrice: isAi,
+            aiSuggestedPrice: isAi ? currentPrice : 0,
+          ),
+        );
+        _updateLoadingMessage(
+          "Memuatkan ${finalList.length}/${entries.length} item...",
+        );
       }
 
       if (!mounted || _isCancelled) return;
-      setState(() { _apiPrices = finalList; _isLoading = false; });
+      setState(() {
+        _apiPrices = finalList;
+        _isLoading = false;
+      });
     } catch (e) {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -256,7 +310,14 @@ class _AiAnalysisPageState extends State<AiAnalysisPage>
     return Scaffold(
       backgroundColor: AppColors.offWhite,
       appBar: AppBar(
-        title: const Text("Analisis Pintar Gemini", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 20)),
+        title: const Text(
+          "Analisis Pintar Gemini",
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+            fontSize: 20,
+          ),
+        ),
         backgroundColor: AppColors.jungleGreen,
         centerTitle: true,
       ),
@@ -268,7 +329,10 @@ class _AiAnalysisPageState extends State<AiAnalysisPage>
             _buildRecipeSimulatorButton(),
             _buildCategoryFilter(),
             if (_apiPrices.isEmpty && !_isLoading)
-              const Padding(padding: EdgeInsets.all(16.0), child: Center(child: Text("Tiada rekod tersedia.")))
+              const Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Center(child: Text("Tiada rekod tersedia.")),
+              )
             else
               _buildResultsList(),
           ],
@@ -282,7 +346,10 @@ class _AiAnalysisPageState extends State<AiAnalysisPage>
     final filteredList = grouped[_selectedCategory] ?? [];
 
     if (filteredList.isEmpty) {
-      return const SizedBox(height: 200, child: Center(child: Text("Tiada data untuk kategori ini.")));
+      return const SizedBox(
+        height: 200,
+        child: Center(child: Text("Tiada data untuk kategori ini.")),
+      );
     }
 
     return Padding(
@@ -292,7 +359,7 @@ class _AiAnalysisPageState extends State<AiAnalysisPage>
         physics: const NeverScrollableScrollPhysics(),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
-          childAspectRatio: 0.58, 
+          childAspectRatio: 0.58,
           mainAxisSpacing: 8,
           crossAxisSpacing: 8,
         ),
@@ -328,11 +395,30 @@ class _AiAnalysisPageState extends State<AiAnalysisPage>
               decoration: BoxDecoration(
                 color: isSelected ? AppColors.jungleGreen : Colors.white,
                 borderRadius: BorderRadius.circular(25),
-                border: Border.all(color: isSelected ? AppColors.jungleGreen : Colors.grey.shade300),
-                boxShadow: isSelected ? [BoxShadow(color: AppColors.jungleGreen.withOpacity(0.3), blurRadius: 8)] : [],
+                border: Border.all(
+                  color: isSelected
+                      ? AppColors.jungleGreen
+                      : Colors.grey.shade300,
+                ),
+                boxShadow: isSelected
+                    ? [
+                        BoxShadow(
+                          color: AppColors.jungleGreen.withOpacity(0.3),
+                          blurRadius: 8,
+                        ),
+                      ]
+                    : [],
               ),
               child: Center(
-                child: Text(cat['label']!, style: TextStyle(color: isSelected ? Colors.white : Colors.grey.shade700, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
+                child: Text(
+                  cat['label']!,
+                  style: TextStyle(
+                    color: isSelected ? Colors.white : Colors.grey.shade700,
+                    fontWeight: isSelected
+                        ? FontWeight.bold
+                        : FontWeight.normal,
+                  ),
+                ),
               ),
             ),
           );
@@ -349,18 +435,26 @@ class _AiAnalysisPageState extends State<AiAnalysisPage>
     double diff = current - lastMonth;
     double percent = (lastMonth != 0) ? (diff / lastMonth) * 100 : 0;
 
-    Color trendColor = (diff > 0) ? Colors.red : ((diff < 0) ? Colors.green : Colors.amber.shade800);
+    Color trendColor = (diff > 0)
+        ? Colors.red
+        : ((diff < 0) ? Colors.green : Colors.amber.shade800);
     if (useAi) trendColor = (diff > 0) ? Colors.orange : Colors.blue;
 
     String insight;
     if (useAi) {
-      if (diff > 0) insight = "🤖 AI: Harga dijangka NAIK. Borong awal jika bahan tahan lama.";
-      else if (diff < 0) insight = "🤖 AI: Harga dijangka TURUN. Jangan simpan stok berlebihan.";
-      else insight = "🤖 AI: Harga stabil. Tiada tindakan drastik diperlukan.";
+      if (diff > 0)
+        insight =
+            "🤖 AI: Harga dijangka NAIK. Borong awal jika bahan tahan lama.";
+      else if (diff < 0)
+        insight = "🤖 AI: Harga dijangka TURUN. Jangan simpan stok berlebihan.";
+      else
+        insight = "🤖 AI: Harga stabil. Tiada tindakan drastik diperlukan.";
     } else if (diff > 0) {
-      insight = "⚠️ Naik ${percent.abs().toStringAsFixed(1)}%. Kos resipi Mak Cik tinggi. Semak Simulator.";
+      insight =
+          "⚠️ Naik ${percent.abs().toStringAsFixed(1)}%. Kos resipi Mak Cik tinggi. Semak Simulator.";
     } else if (diff < 0) {
-      insight = "✅ Turun ${percent.abs().toStringAsFixed(1)}%. Margin untung naik! Buat promosi!";
+      insight =
+          "✅ Turun ${percent.abs().toStringAsFixed(1)}%. Margin untung naik! Buat promosi!";
     } else {
       insight = "⚖️ Harga stabil. Teruskan strategi jualan anda.";
     }
@@ -370,7 +464,13 @@ class _AiAnalysisPageState extends State<AiAnalysisPage>
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Stack(
         children: [
@@ -378,11 +478,32 @@ class _AiAnalysisPageState extends State<AiAnalysisPage>
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(record.itemName, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87)),
+              Text(
+                record.itemName,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  color: Colors.black87,
+                ),
+              ),
               const SizedBox(height: 4),
-              Text(useAi ? "Ramalan AI Gemini" : "Tarikh: ${_formatDate(record.date)}", style: const TextStyle(fontSize: 10, color: Colors.grey)),
+              Text(
+                useAi
+                    ? "Ramalan AI Gemini"
+                    : "Tarikh: ${_formatDate(record.date)}",
+                style: const TextStyle(fontSize: 10, color: Colors.grey),
+              ),
               const SizedBox(height: 4),
-              Text("RM ${current.toStringAsFixed(2)}", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: trendColor)),
+              Text(
+                "RM ${current.toStringAsFixed(2)}",
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: trendColor,
+                ),
+              ),
               const SizedBox(height: 12),
               if (hasValidData)
                 SizedBox(
@@ -394,29 +515,71 @@ class _AiAnalysisPageState extends State<AiAnalysisPage>
                       gridData: FlGridData(show: false),
                       borderData: FlBorderData(show: false),
                       titlesData: FlTitlesData(
-                        leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                        rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                        leftTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                        rightTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                        topTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
                         bottomTitles: AxisTitles(
                           sideTitles: SideTitles(
                             showTitles: true,
                             getTitlesWidget: (value, meta) {
-                              if (value == 0) return const Text("Lepas", style: TextStyle(fontSize: 9));
-                              if (value == 1) return const Text("Kini", style: TextStyle(fontSize: 9));
+                              if (value == 0)
+                                return const Text(
+                                  "Lepas",
+                                  style: TextStyle(fontSize: 9),
+                                );
+                              if (value == 1)
+                                return const Text(
+                                  "Kini",
+                                  style: TextStyle(fontSize: 9),
+                                );
                               return const SizedBox();
                             },
                           ),
                         ),
                       ),
                       barGroups: [
-                        BarChartGroupData(x: 0, barRods: [BarChartRodData(toY: lastMonth, width: 18, borderRadius: BorderRadius.circular(4), color: Colors.grey.shade400)]),
-                        BarChartGroupData(x: 1, barRods: [BarChartRodData(toY: current, width: 18, borderRadius: BorderRadius.circular(4), color: trendColor)]),
+                        BarChartGroupData(
+                          x: 0,
+                          barRods: [
+                            BarChartRodData(
+                              toY: lastMonth,
+                              width: 18,
+                              borderRadius: BorderRadius.circular(4),
+                              color: Colors.grey.shade400,
+                            ),
+                          ],
+                        ),
+                        BarChartGroupData(
+                          x: 1,
+                          barRods: [
+                            BarChartRodData(
+                              toY: current,
+                              width: 18,
+                              borderRadius: BorderRadius.circular(4),
+                              color: trendColor,
+                            ),
+                          ],
+                        ),
                       ],
                     ),
                   ),
                 ),
               const SizedBox(height: 12),
-              Text(insight, style: const TextStyle(fontSize: 11, color: Colors.black87, height: 1.3), softWrap: true),
+              Text(
+                insight,
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: Colors.black87,
+                  height: 1.3,
+                ),
+                softWrap: true,
+              ),
             ],
           ),
           Positioned(
@@ -424,8 +587,18 @@ class _AiAnalysisPageState extends State<AiAnalysisPage>
             right: 0,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(color: trendColor, borderRadius: BorderRadius.circular(20)),
-              child: Text("${percent >= 0 ? "+" : ""}${percent.toStringAsFixed(1)}%", style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+              decoration: BoxDecoration(
+                color: trendColor,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                "${percent >= 0 ? "+" : ""}${percent.toStringAsFixed(1)}%",
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ),
         ],
@@ -437,22 +610,41 @@ class _AiAnalysisPageState extends State<AiAnalysisPage>
     try {
       final date = DateTime.parse(dateString);
       return "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
-    } catch (_) { return dateString; }
+    } catch (_) {
+      return dateString;
+    }
   }
 
   Widget _buildRecipeSimulatorButton() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: ElevatedButton.icon(
-        style: ElevatedButton.styleFrom(backgroundColor: AppColors.lightOrange, foregroundColor: Colors.black87, padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.lightOrange,
+          foregroundColor: Colors.black87,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+        ),
         icon: const Icon(Icons.restaurant_menu),
-        label: const Text("Simulator Harga Resipi", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        label: const Text(
+          "Simulator Harga Resipi",
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
         onPressed: () {
           if (_apiPrices.isEmpty) {
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Tiada data harga tersedia.")));
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Tiada data harga tersedia.")),
+            );
             return;
           }
-          Navigator.push(context, MaterialPageRoute(builder: (_) => RecipePage(latestPrices: _apiPrices)));
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => RecipePage(latestPrices: _apiPrices),
+            ),
+          );
         },
       ),
     );
@@ -461,7 +653,14 @@ class _AiAnalysisPageState extends State<AiAnalysisPage>
   Widget _buildSectionTitle(String title) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
-      child: Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.jungleGreen)),
+      child: Text(
+        title,
+        style: TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+          color: AppColors.jungleGreen,
+        ),
+      ),
     );
   }
 }
