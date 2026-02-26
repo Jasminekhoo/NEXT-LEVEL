@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'firebase_options.dart';
 import 'app_colors.dart';
 import 'screens/main_screen.dart';
@@ -28,14 +28,14 @@ class WarungWiseApp extends StatelessWidget {
         fontFamily: 'Roboto',
       ),
       // MainScreen
-      home: const MainScreen(), 
+      home: const MainScreen(),
     );
   }
 }
 
 // ========================================================
 // Firebase 测试代码 (FirebaseTestScreen)
-// if需要测试，只要把上面的 home: const MainScreen() 
+// if需要测试，只要把上面的 home: const MainScreen()
 // 改成 home: const FirebaseTestScreen() 就可以了
 // ========================================================
 class FirebaseTestScreen extends StatelessWidget {

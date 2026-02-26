@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import '../api_config.dart';
 
 class GeminiService {
-  static const String _apiKey = ApiConfig.geminiApiKey;
+  static const String _apiKey = ApiConfig.geminiApiKey; // ✅ works again
 
   // =====================================================
   // 1️⃣ TEXT-ONLY: Get Suggested Market Price
