@@ -49,7 +49,7 @@ dependencies:
   cloud_firestore: ^6.1.2
   speech_to_text: ^7.0.0
   
-  google_generative_ai: ^0.4.0  # Add this for Free Gemini Access
+  google_generative_ai: ^0.4.6  # Add this for Free Gemini Access
   
 
 dev_dependencies:

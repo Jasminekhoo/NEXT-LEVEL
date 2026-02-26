@@ -103,128 +103,8 @@ class _DashboardPageState extends State<DashboardPage> {
   // 📸 Snap Receipt Flow
   // ==========================================
 
-  /*
-  Future<void> _handleSnapReceipt() async {
-    // 1️⃣ 显示 Loading Dialog
-    _showScanLoading();
-
-    _loadingText.value = "Mengambil gambar...";
-    await Future.delayed(const Duration(seconds: 1));
-
-    _loadingText.value = "Mengekstrak teks...";
-    await Future.delayed(const Duration(seconds: 1));
-
-    _loadingText.value = "Menganalisis dengan AI Gemini...";
-    await Future.delayed(const Duration(seconds: 1));
-
-    // 2️⃣ 模拟提取的物品
-    final today = DateTime.now();
-    final extractedItems = [
-      ExtractedItem(name: "Beras 5kg", price: "RM 18.50", date: today),
-      ExtractedItem(name: "Ayam 1kg", price: "RM 9.90", date: today),
-      ExtractedItem(name: "Telur Gred A", price: "RM 12.00", date: today),
-    ];
-
-    if (!mounted) return;
-
-    // 3️⃣ 关闭 Loading
-    Navigator.pop(context);
-
-    // 4️⃣ 跳转到 ReceiptReviewPage，并等待用户确认/修改
-    final result = await Navigator.push<List<ExtractedItem>>(
-      context,
-      MaterialPageRoute(
-        builder: (_) => ReceiptReviewPage(extractedItems: extractedItems),
-      ),
-    );
-
-    /*
-  // 5️⃣ 如果用户确认有数据
-  if (result != null && result.isNotEmpty) {
-    setState(() {
-      for (var item in result) {
-        // 转成 Transaction（成本支出）
-        transactions.insert(
-          0,
-          Transaction(
-            title: "Beli ${item.name}",
-            amount: item.price.startsWith("RM") ? "- ${item.price}" : "- RM ${item.price}",
-            isIncome: false, // 🔴 支出
-            date: "Hari Ini",
-            time: _getCurrentTime(),
-          ),
-        );
-
-        // 更新净赚金额（扣掉成本）
-        totalUntung -= double.tryParse(item.price.replaceAll("RM", "").trim()) ?? 0;
-      }
-    });
-
-    // 6️⃣ 显示 SnackBar 提示
-    _showSuccessSnackBar(
-      isIncome: false, // 🔴 成本
-      text: "Resit berjaya direkod",
-      subText: "${result.length} item ditambah ke transaksi.",
-    );
-  }
-}
-*/
-
-    // 5️⃣ 如果用户确认有数据
-    if (result != null && result.isNotEmpty) {
-      for (var item in result) {
-        // A. 清洗数据：去掉 "RM"，转为数字
-        double priceNum =
-            double.tryParse(item.price.replaceAll(RegExp(r'[^0-9.]'), '')) ??
-            0.0;
-
-        // B. 🚀 写入 Firestore: 'transactions' 集合 (每一笔记录)
-        await fs.FirebaseFirestore.instance.collection('transactions').add({
-          'title': "Beli ${item.name}",
-          'amount': "- RM ${priceNum.toStringAsFixed(2)}",
-          'isIncome': false,
-          'timestamp': fs.FieldValue.serverTimestamp(),
-          'time': _getCurrentTime(),
-        });
-
-        // C. 🚀 写入 Firestore: 'ingredient_prices' 集合 (更新食材单价库)
-        // 使用 set(merge: true) 确保同名食材只更新价格，不产生重复文档
-        await fs.FirebaseFirestore.instance
-            .collection('ingredient_prices')
-            .doc(item.name.trim().toLowerCase()) // 使用小写名称作为 ID 避免重复
-            .set({
-              'name': item.name,
-              'pricePerKg': priceNum,
-              'lastUpdated': fs.FieldValue.serverTimestamp(),
-            }, fs.SetOptions(merge: true));
-
-        // D. 更新本地 UI
-        setState(() {
-          transactions.insert(
-            0,
-            Transaction(
-              title: "Beli ${item.name}",
-              amount: "- RM ${priceNum.toStringAsFixed(2)}",
-              isIncome: false,
-              date: "Hari Ini",
-              time: _getCurrentTime(),
-            ),
-          );
-          totalUntung -= priceNum;
-        });
-      }
-
-      // 6️⃣ 显示 SnackBar
-      _showSuccessSnackBar(
-        isIncome: false,
-        text: "Resit berjaya direkod",
-        subText: "${result.length} item telah disinkronkan ke Firebase.",
-      );
-    }
-  }
-  */
-
   // work with hardcoded data (the best version before Gemini is ready)
+  /*
   Future<void> _handleSnapReceipt() async {
     // 0) Choose source
     final source = await _showReceiptSourceSheet();
@@ -327,10 +207,10 @@ class _DashboardPageState extends State<DashboardPage> {
       );
     }
   }
+  */
 
-  /*
   Future<void> _handleSnapReceipt() async {
-    // 0) Choose source
+    // 0) Choose source (Camera or Gallery)
     final source = await _showReceiptSourceSheet();
     if (source == null) return;
 
@@ -350,46 +230,58 @@ class _DashboardPageState extends State<DashboardPage> {
     }
 
     // 2) Show Loading Dialog
-    _loadingText.value = "Memulakan imbasan...";
     _showScanLoading();
 
     try {
       _loadingText.value = "Memproses gambar...";
-      await Future.delayed(const Duration(milliseconds: 300));
+      await Future.delayed(const Duration(milliseconds: 500));
 
       _loadingText.value = "Menganalisis dengan AI Gemini...";
-      final results = await _visionService.analyzeReceipt(File(picked.path));
+
+      // 🔥 ACTUAL AI CALL: Passing the picked image to Gemini
+      // Using the Inline Data method (File to bytes) as we discussed.
+      /*
+      final List<ExtractedItem> results = await _visionService.analyzeReceipt(
+        File(picked.path),
+      ); 
+      */
+      final List<ExtractedItem> results = await _visionService.analyzeReceipt(
+        picked,
+      );
 
       if (!mounted) return;
 
       // 3) Close loading
       Navigator.pop(context);
 
-      // 🔴 If Gemini returns nothing
+      // If Gemini fails to find items, stop here and inform user
       if (results.isEmpty) {
         _showSuccessSnackBar(
           isIncome: false,
-          text: "Tiada item dijumpai",
-          subText: "Cuba snap resit lebih jelas / cukup cahaya.",
+          text: "Imbasan Kosong",
+          subText:
+              "AI tidak menemui sebarang item. Sila cuba lagi dengan gambar lebih jelas.",
         );
         return;
       }
 
-      // 4) Go to review page
-      final result = await Navigator.push<List<ExtractedItem>>(
+      // 4) Go to review page with the REAL results from Gemini
+      final confirmedResult = await Navigator.push<List<ExtractedItem>>(
         context,
         MaterialPageRoute(
           builder: (_) => ReceiptReviewPage(extractedItems: results),
         ),
       );
 
-      // 5) If confirmed -> sync Firebase (your existing logic)
-      if (result != null && result.isNotEmpty) {
-        for (var item in result) {
-          final priceNum =
+      // 5) If user confirmed -> sync Firebase (Your existing logic)
+      if (confirmedResult != null && confirmedResult.isNotEmpty) {
+        for (var item in confirmedResult) {
+          // Clean price: Remove "RM" or non-numeric characters to get a double
+          double priceNum =
               double.tryParse(item.price.replaceAll(RegExp(r'[^0-9.]'), '')) ??
               0.0;
 
+          // A. Record in Transactions (Ledger)
           await fs.FirebaseFirestore.instance.collection('transactions').add({
             'title': "Beli ${item.name}",
             'amount': "- RM ${priceNum.toStringAsFixed(2)}",
@@ -398,6 +290,7 @@ class _DashboardPageState extends State<DashboardPage> {
             'time': _getCurrentTime(),
           });
 
+          // B. Record in Ingredient Prices (Market Data for Pillar 2)
           await fs.FirebaseFirestore.instance
               .collection('ingredient_prices')
               .doc(item.name.trim().toLowerCase())
@@ -407,6 +300,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 'lastUpdated': fs.FieldValue.serverTimestamp(),
               }, fs.SetOptions(merge: true));
 
+          // C. Update Local Dashboard UI
           setState(() {
             transactions.insert(
               0,
@@ -425,21 +319,22 @@ class _DashboardPageState extends State<DashboardPage> {
         _showSuccessSnackBar(
           isIncome: false,
           text: "Resit berjaya direkod",
-          subText: "${result.length} item telah disinkronkan ke Firebase.",
+          subText:
+              "${confirmedResult.length} item telah disinkronkan ke Firebase.",
         );
       }
     } catch (e) {
-      if (!mounted) return;
-      Navigator.pop(context); // close loading
-
-      _showSuccessSnackBar(
-        isIncome: false,
-        text: "Imbasan gagal",
-        subText: "Ralat: $e",
-      );
+      // Safety Net: Close loading and show error if something crashes
+      if (mounted) {
+        Navigator.pop(context);
+        _showSuccessSnackBar(
+          isIncome: false,
+          text: "Ralat Imbasan",
+          subText: "Sesuatu berlaku: $e",
+        );
+      }
     }
   }
-  */
 
   void _showScanLoading() {
     showDialog(

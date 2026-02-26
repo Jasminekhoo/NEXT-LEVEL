@@ -13,7 +13,7 @@ class GeminiService {
     required String itemName,
     required double lastPrice,
     required String category,
-    String modelName = "models/gemini-1.5-flash",
+    String modelName = "gemini-2.5-flash",
   }) async {
     final url = Uri.parse(
       "https://generativelanguage.googleapis.com/v1beta/$modelName:generateContent?key=$_apiKey",
@@ -81,7 +81,7 @@ Return updated market price:
   // =====================================================
   static Future<List<Map<String, dynamic>>?> analyzeReceiptPhoto({
     required File imageFile,
-    String modelName = "models/gemini-1.5-flash",
+    String modelName = "gemini-2.5-flash",
   }) async {
     final url = Uri.parse(
       "https://generativelanguage.googleapis.com/v1beta/$modelName:generateContent?key=$_apiKey",
