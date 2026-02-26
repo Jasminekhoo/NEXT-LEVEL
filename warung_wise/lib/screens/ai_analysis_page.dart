@@ -200,110 +200,125 @@ class _AiAnalysisPageState extends State<AiAnalysisPage>
   }
 
   Future<void> _loadData() async {
+  if (_isCancelled) return;
+  setState(() => _isLoading = true);
+
+  try {
+    // 1. 并发获取 Firebase 和 CSV 数据，提高加载速度
+    final results = await Future.wait([
+      fs.FirebaseFirestore.instance.collection('ingredient_prices').get(),
+      _priceService.getLatestPrices(),
+    ]);
+
     if (_isCancelled) return;
-    setState(() => _isLoading = true);
-    try {
-      final firebaseSnapshot = await fs.FirebaseFirestore.instance
-          .collection('ingredient_prices')
-          .get();
+
+    final fs.QuerySnapshot firebaseSnapshot = results[0] as fs.QuerySnapshot;
+    final List<PriceRecord> csvData = results[1] as List<PriceRecord>;
+
+    // 建立查找映射
+    final Map<String, dynamic> firebasePriceMap = {
+      for (var doc in firebaseSnapshot.docs) doc.id: doc.data(),
+    };
+    final Map<String, PriceRecord> csvMap = {
+      for (var rec in csvData) rec.itemName: rec,
+    };
+
+    List<PriceRecord> finalList = [];
+    final entries = PriceServiceCsv.itemLookup.entries.toList();
+    int aiCallCount = 0;
+    const int maxAiCalls = 5; // 限制 AI 预测数量，避免消耗过多 Token 或等待太久
+
+    for (var entry in entries) {
       if (_isCancelled) return;
 
-      final Map<String, dynamic> firebasePriceMap = {
-        for (var doc in firebaseSnapshot.docs) doc.id: doc.data(),
-      };
-      final currentMonthData = await _priceService.getLatestPrices();
-      if (_isCancelled) return;
-
-      final Map<String, PriceRecord> csvMap = {
-        for (var rec in currentMonthData) rec.itemName: rec,
-      };
-
-      List<PriceRecord> finalList = [];
-      final entries = PriceServiceCsv.itemLookup.entries.toList();
-      int aiCallCount = 0;
-
-      for (var entry in entries) {
-        if (_isCancelled) return; // 🔴 在循环内也检查
-
-        final String itemName = entry.value['name']!;
-        final String category = entry.value['cat']!;
-        final String lookupKey = itemName.trim().toLowerCase();
-        PriceRecord? csvRecord = csvMap[itemName];
-        double basePrice = csvRecord?.oldPrice ?? 0;
-
-        if (basePrice <= 0) {
-          if (category.contains("Daging"))
-            basePrice = 14.50;
-          else if (category.contains("Sayur"))
-            basePrice = 5.50;
-          else if (category.contains("Buah"))
-            basePrice = 8.00;
-          else
-            basePrice = 4.50;
-        }
-
-        double currentPrice;
-        String dateLabel;
-        bool isAi;
-
-        if (firebasePriceMap.containsKey(lookupKey)) {
-          currentPrice = (firebasePriceMap[lookupKey]['pricePerKg'] as num)
-              .toDouble();
-          var ts = firebasePriceMap[lookupKey]['lastUpdated'];
-          dateLabel = (ts is fs.Timestamp)
-              ? _formatDate(ts.toDate().toIso8601String())
-              : "Dikemas kini baru-baru ini";
-          isAi = false;
-        } else {
-          if (aiCallCount < 2) {
-            currentPrice = await getAiSuggestedPrice(
-              itemName,
-              basePrice,
-              category,
-            );
-            aiCallCount++;
-            await Future.delayed(const Duration(milliseconds: 300));
-            dateLabel = "Ramalan AI Gemini";
-            isAi = true;
-          } else {
-            final random = Random(itemName.hashCode);
-            double fluctuation = (random.nextDouble() * 0.40) - 0.15;
-            currentPrice = double.parse(
-              (basePrice * (1 + fluctuation)).toStringAsFixed(2),
-            );
-            if (fluctuation.abs() < 0.05) currentPrice = basePrice;
-            dateLabel = "Data pasaran terkini";
-            isAi = false;
-          }
-        }
-
-        finalList.add(
-          PriceRecord(
-            itemName: itemName,
-            oldPrice: basePrice,
-            newPrice: currentPrice,
-            history: [basePrice, currentPrice],
-            unit: "kg/unit",
-            date: dateLabel,
-            category: category,
-            isAiPrice: isAi,
-            aiSuggestedPrice: isAi ? currentPrice : 0,
-          ),
-        );
-        _updateLoadingMessage(
-          "Memuatkan ${finalList.length}/${entries.length} item...",
-        );
+      final String itemName = entry.value['name']!;
+      final String category = entry.value['cat']!;
+      final String lookupKey = itemName.trim().toLowerCase();
+      
+      // 获取该物品在 CSV 中的记录
+      PriceRecord? csvRecord = csvMap[itemName];
+      
+      // 确定基础价格 (由旧至新尝试: CSV旧价 -> 硬编码默认价)
+      double basePrice = (csvRecord?.oldPrice ?? 0) > 0 ? csvRecord!.oldPrice : 0;
+      if (basePrice <= 0) {
+        if (category.contains("Daging")) basePrice = 14.50;
+        else if (category.contains("Sayur")) basePrice = 5.50;
+        else if (category.contains("Buah")) basePrice = 8.00;
+        else basePrice = 4.50;
       }
 
-      if (!mounted || _isCancelled) return;
-      setState(() {
-        _apiPrices = finalList;
-        _isLoading = false;
-      });
-    } catch (e) {
-      if (mounted) setState(() => _isLoading = false);
+      double currentPrice;
+      String dateLabel;
+      bool isAi = false;
+
+      // ==========================================================
+      // 优先级 1: FIREBASE (真实的、用户/管理员手动更新的数据)
+      // ==========================================================
+      if (firebasePriceMap.containsKey(lookupKey)) {
+        currentPrice = (firebasePriceMap[lookupKey]['pricePerKg'] as num).toDouble();
+        var ts = firebasePriceMap[lookupKey]['lastUpdated'];
+        dateLabel = (ts is fs.Timestamp)
+            ? _formatDate(ts.toDate().toIso8601String())
+            : "Dikemas kini baru-baru ini";
+        isAi = false;
+      } 
+      // ==========================================================
+      // 优先级 2: CSV (政府公布的最新的本月市场价)
+      // ==========================================================
+      else if (csvRecord != null && csvRecord.newPrice > 0) {
+        currentPrice = csvRecord.newPrice;
+        dateLabel = "Data Pasaran KPDN"; // 标记为政府数据
+        isAi = false;
+      }
+      // ==========================================================
+      // 优先级 3: GEMINI (当 Firebase 和 CSV 都没有新数据时，进行预测)
+      // ==========================================================
+      else if (aiCallCount < maxAiCalls) {
+        currentPrice = await getAiSuggestedPrice(itemName, basePrice, category);
+        aiCallCount++;
+        dateLabel = "Ramalan AI Gemini";
+        isAi = true;
+        // 小延迟避免并发过高触发 API 限制
+        await Future.delayed(const Duration(milliseconds: 300));
+      } 
+      // ==========================================================
+      // 兜底: 逻辑波动 (最后没办法了才用逻辑计算)
+      // ==========================================================
+      else {
+        final random = Random(itemName.hashCode);
+        double fluctuation = (random.nextDouble() * 0.10) + 1.02; // 随机涨 2-12%
+        currentPrice = double.parse((basePrice * fluctuation).toStringAsFixed(2));
+        dateLabel = "Anggaran Pasaran";
+        isAi = false;
+      }
+
+      finalList.add(
+        PriceRecord(
+          itemName: itemName,
+          oldPrice: basePrice,
+          newPrice: currentPrice,
+          history: [basePrice, currentPrice],
+          unit: "kg/unit",
+          date: dateLabel,
+          category: category,
+          isAiPrice: isAi,
+          aiSuggestedPrice: isAi ? currentPrice : 0,
+        ),
+      );
+
+      _updateLoadingMessage("Memuatkan ${finalList.length}/${entries.length} item...");
     }
+
+    if (!mounted || _isCancelled) return;
+    setState(() {
+      _apiPrices = finalList;
+      _isLoading = false;
+    });
+  } catch (e) {
+    print("❌ loadData Error: $e");
+    if (mounted) setState(() => _isLoading = false);
   }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -664,3 +679,4 @@ class _AiAnalysisPageState extends State<AiAnalysisPage>
     );
   }
 }
+

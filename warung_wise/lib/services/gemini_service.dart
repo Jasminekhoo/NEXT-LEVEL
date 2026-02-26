@@ -4,81 +4,84 @@ import 'package:http/http.dart' as http;
 import '../api_config.dart';
 
 class GeminiService {
-  static const String _apiKey = ApiConfig.geminiApiKey; // ✅ works again
+  static const String _apiKey = ApiConfig.geminiApiKey;
 
-  // =====================================================
-  // 1️⃣ TEXT-ONLY: Get Suggested Market Price
-  // =====================================================
   static Future<double?> getSuggestedPrice({
     required String itemName,
     required double lastPrice,
     required String category,
-    String modelName = "gemini-2.5-flash",
   }) async {
+    const String modelName = "gemini-2.5-flash";
     final url = Uri.parse(
-      "https://generativelanguage.googleapis.com/v1beta/$modelName:generateContent?key=$_apiKey",
+      "https://generativelanguage.googleapis.com/v1beta/models/$modelName:generateContent?key=$_apiKey",
     );
 
-    final prompt =
-        """
-You are a senior market price analyst in Malaysia (February 2026).
+    // 稍微调整 Prompt，明确叫它不要在思考后废话
+    final promptText = """
+User: You are a market analyst. 
+Item: $itemName, Category: $category, Last Price: RM $lastPrice.
+Rules: Realistic Malaysian inflation adjustment. 
+Output ONLY the price as a number. No text.
 
-Item: $itemName
-Category: $category
-Previous Market Price: RM ${lastPrice.toStringAsFixed(2)}
-
-Rules:
-- Adjust price realistically based on Malaysian inflation (2-5%)
-- Small fluctuation allowed (max ±8%)
-- Vegetables and fresh items may fluctuate slightly higher
-- DO NOT exceed ±10% change
-- Output ONLY a number
-- No explanation
-- No currency symbol
-
-Return updated market price:
+Assistant: 
 """;
 
+    final Map<String, dynamic> body = {
+      "contents": [
+        {
+          "role": "user",
+          "parts": [{"text": promptText}]
+        }
+      ],
+      "generationConfig": {
+        "temperature": 0.1,
+        "maxOutputTokens": 200, // 👈 重要：增加到 200，防止被 thoughts 占满
+        "topP": 0.95,
+      }
+    };
+
     try {
-      final response = await http
-          .post(
-            url,
-            headers: {"Content-Type": "application/json"},
-            body: jsonEncode({
-              "contents": [
-                {
-                  "parts": [
-                    {"text": prompt},
-                  ],
-                },
-              ],
-              "generationConfig": {"temperature": 0.2},
-            }),
-          )
-          .timeout(const Duration(seconds: 12));
+      print("📡 发送请求至 Gemini 2.5 Flash...");
+      final response = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode(body),
+      );
 
-      print("📡 getSuggestedPrice status: ${response.statusCode}");
-      print("📡 getSuggestedPrice body: ${response.body}");
+      if (response.statusCode != 200) {
+        print("❌ 错误: ${response.body}");
+        return null;
+      }
 
-      if (response.statusCode != 200) return null;
+      final Map<String, dynamic> data = jsonDecode(response.body);
+      
+      // 检查是否有内容
+      final candidates = data['candidates'] as List?;
+      if (candidates == null || candidates.isEmpty) return null;
 
-      final data = jsonDecode(response.body);
-      final String? text =
-          data["candidates"]?[0]?["content"]?["parts"]?[0]?["text"];
+      final content = candidates[0]['content'];
+      if (content == null || content['parts'] == null) {
+        // 如果没有 parts，可能是被 thoughts 阻塞了
+        print("⚠️ 响应中没有 parts。原因: ${candidates[0]['finishReason']}");
+        return null;
+      }
 
-      if (text == null) return null;
-
-      final cleaned = text.trim().replaceAll(RegExp(r'[^0-9.]'), '');
-      return double.tryParse(cleaned);
+      final String? aiText = content['parts'][0]['text'];
+      if (aiText != null) {
+        print("🤖 AI 返回: ${aiText.trim()}");
+        // 提取数字
+        final match = RegExp(r'(\d+(\.\d+)?)').firstMatch(aiText);
+        if (match != null) {
+          return double.tryParse(match.group(0)!);
+        }
+      }
+      return null;
     } catch (e) {
-      print("❌ getSuggestedPrice error: $e");
+      print("❌ 异常: $e");
       return null;
     }
   }
 
-  // =====================================================
-  // 2️⃣ IMAGE + TEXT: Analyze Receipt Photo (OCR)
-  // =====================================================
   static Future<List<Map<String, dynamic>>?> analyzeReceiptPhoto({
     required File imageFile,
     String modelName = "gemini-2.5-flash",

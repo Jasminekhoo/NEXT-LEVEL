@@ -186,73 +186,72 @@ class _RecipePageState extends State<RecipePage> {
 
   // ---------------- ADD INGREDIENT ----------------
   void _showAddIngredientDialog(Recipe recipe) {
-    final nameController = TextEditingController();
-    final gramController = TextEditingController();
-    final priceController = TextEditingController();
+  final nameController = TextEditingController();
+  final gramController = TextEditingController();
+  final priceController = TextEditingController();
 
-    String selectedCategory = "Keperluan";
-    Map<String, String>? selectedItem; // 如果选已有商品
-    bool useLookup = true; // 是否使用已有商品列表
+  String selectedCategory = "Keperluan";
+  Map<String, String>? selectedItem;
+  bool useLookup = true;
 
-    showDialog(
-      context: context,
-      builder: (_) {
-        String selectedUnit = 'g'; // Dialog 内部局部状态
-        return StatefulBuilder(
-          builder: (context, setDialogState) => AlertDialog(
-            title: const Text("Tambah Bahan"),
-            content: SingleChildScrollView(
+  showDialog(
+    context: context,
+    builder: (_) {
+      String selectedUnit = 'g';
+      return StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text("Tambah Bahan"),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: SingleChildScrollView(
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  // 切换按钮：使用 lookup 或自定义
-                  Row(
-                    children: [
-                      Expanded(
-                        child: RadioListTile<bool>(
-                          title: const Text("Pilih dari senarai"),
-                          value: true,
-                          groupValue: useLookup,
-                          onChanged: (val) {
-                            setDialogState(() => useLookup = val!);
-                          },
-                        ),
+                  // --- Toggle Pilih vs Custom (Lebih hemat ruang dari Radio) ---
+                  SegmentedButton<bool>(
+                    segments: const [
+                      ButtonSegment(
+                        value: true,
+                        label: Text("Senarai"),
+                        icon: Icon(Icons.list_alt),
                       ),
-                      Expanded(
-                        child: RadioListTile<bool>(
-                          title: const Text("Custom"),
-                          value: false,
-                          groupValue: useLookup,
-                          onChanged: (val) {
-                            setDialogState(() => useLookup = val!);
-                          },
-                        ),
+                      ButtonSegment(
+                        value: false,
+                        label: Text("Custom"),
+                        icon: Icon(Icons.edit_note),
                       ),
                     ],
+                    selected: {useLookup},
+                    onSelectionChanged: (Set<bool> newSelection) {
+                      setDialogState(() => useLookup = newSelection.first);
+                    },
                   ),
-
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 20),
 
                   if (useLookup) ...[
-                    // Dropdown 选择已有商品
-                    DropdownButton<Map<String, String>>(
+                    // --- Dropdown Pilih Bahan ---
+                    DropdownButtonFormField<Map<String, String>>(
                       isExpanded: true,
-                      hint: const Text("Pilih bahan"),
+                      decoration: const InputDecoration(
+                        labelText: "Pilih bahan",
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 12),
+                      ),
                       value: selectedItem,
-                      items: PriceServiceCsv.itemLookup.values
-                          .map(
-                            (item) => DropdownMenuItem(
-                              value: item,
-                              child: Text(item['name']!),
-                            ),
-                          )
-                          .toList(),
+                      items: PriceServiceCsv.itemLookup.values.map((item) {
+                        return DropdownMenuItem(
+                          value: item,
+                          child: Text(item['name']!, overflow: TextOverflow.ellipsis),
+                        );
+                      }).toList(),
                       onChanged: (val) {
                         setDialogState(() {
                           selectedItem = val;
                           nameController.text = val?['name'] ?? '';
                           selectedCategory = val?['cat'] ?? 'Keperluan';
 
-                          // 获取最新价格
+                          // LOGIC ASLI ANDA
                           final latestPrice = widget.latestPrices.firstWhere(
                             (p) => p.itemName == selectedItem!['name'],
                             orElse: () => PriceRecord(
@@ -266,7 +265,6 @@ class _RecipePageState extends State<RecipePage> {
                             ),
                           );
 
-                          // 判断是否是鸡蛋
                           bool isTelur = RegExp(
                             r'telur',
                             caseSensitive: false,
@@ -274,78 +272,92 @@ class _RecipePageState extends State<RecipePage> {
 
                           if (isTelur) {
                             selectedUnit = 'biji';
-                            gramController.text = '1'; // 默认 1颗
-                            // 鸡蛋价格总价 / 10 得单粒价格
+                            gramController.text = '1';
                             double singlePrice = latestPrice.newPrice / 10;
-                            priceController.text = singlePrice.toStringAsFixed(
-                              3,
-                            );
+                            priceController.text = singlePrice.toStringAsFixed(3);
                           } else {
                             selectedUnit = 'g';
                             gramController.text = '100';
-                            priceController.text = latestPrice.newPrice
-                                .toStringAsFixed(2);
+                            priceController.text = latestPrice.newPrice.toStringAsFixed(2);
                           }
                         });
                       },
                     ),
-
-                    const SizedBox(height: 10),
-
-                    // Gram/Biji 输入
-                    TextField(
-                      controller: gramController,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(labelText: "Jumlah："),
-                    ),
-                    const SizedBox(height: 10),
-
-                    // 单位选择
-                    DropdownButton<String>(
-                      value: selectedUnit,
-                      isExpanded: true,
-                      items: const [
-                        DropdownMenuItem(value: 'g', child: Text('Gram')),
-                        DropdownMenuItem(value: 'kg', child: Text('Kg')),
-                        DropdownMenuItem(value: 'biji', child: Text('Biji')),
-                      ],
-                      onChanged: (value) {
-                        setDialogState(() => selectedUnit = value!);
-                      },
-                    ),
+                    const SizedBox(height: 16),
                   ] else ...[
-                    // 自定义输入
+                    // --- Custom Inputs ---
                     TextField(
                       controller: nameController,
                       decoration: const InputDecoration(
                         labelText: "Nama Bahan",
+                        border: OutlineInputBorder(),
+                        isDense: true,
                       ),
                     ),
-                    TextField(
-                      controller: gramController,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(labelText: "Gram/Biji"),
-                    ),
+                    const SizedBox(height: 12),
+                  ],
+
+                  // --- Row Jumlah & Unit (Optimasi Horizontal) ---
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: TextField(
+                          controller: gramController,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                            labelText: "Jumlah",
+                            border: OutlineInputBorder(),
+                            isDense: true,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        flex: 1,
+                        child: DropdownButtonFormField<String>(
+                          value: selectedUnit,
+                          decoration: const InputDecoration(
+                            border: OutlineInputBorder(),
+                            isDense: true,
+                            contentPadding: EdgeInsets.symmetric(horizontal: 8),
+                          ),
+                          items: const [
+                            DropdownMenuItem(value: 'g', child: Text('g')),
+                            DropdownMenuItem(value: 'kg', child: Text('kg')),
+                            DropdownMenuItem(value: 'biji', child: Text('biji')),
+                          ],
+                          onChanged: (value) {
+                            setDialogState(() => selectedUnit = value!);
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  if (!useLookup) ...[
+                    const SizedBox(height: 12),
                     TextField(
                       controller: priceController,
                       keyboardType: TextInputType.number,
                       decoration: const InputDecoration(
-                        labelText: "Harga per KG / per biji",
+                        labelText: "Harga per KG / Biji",
+                        border: OutlineInputBorder(),
+                        isDense: true,
                       ),
                     ),
-                    const SizedBox(height: 10),
-                    DropdownButton<String>(
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
                       value: selectedCategory,
-                      isExpanded: true,
+                      decoration: const InputDecoration(
+                        labelText: "Kategori",
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                      ),
                       items: const [
-                        DropdownMenuItem(
-                          value: "Keperluan",
-                          child: Text("Keperluan"),
-                        ),
-                        DropdownMenuItem(
-                          value: "Daging & Telur",
-                          child: Text("Daging & Telur"),
-                        ),
+                        DropdownMenuItem(value: "Keperluan", child: Text("Keperluan")),
+                        DropdownMenuItem(value: "Daging & Telur", child: Text("Daging & Telur")),
                         DropdownMenuItem(value: "Sayur", child: Text("Sayur")),
                         DropdownMenuItem(value: "Buah", child: Text("Buah")),
                       ],
@@ -357,49 +369,46 @@ class _RecipePageState extends State<RecipePage> {
                 ],
               ),
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text(
-                  "Batal",
-                  style: TextStyle(color: Colors.grey),
-                ),
-              ),
-              TextButton(
-                onPressed: () {
-                  final double gram =
-                      double.tryParse(gramController.text.trim()) ?? 0;
-                  if (gram <= 0) return;
-
-                  double? pricePerUnit = double.tryParse(
-                    priceController.text.trim(),
-                  );
-
-                  setState(() {
-                    recipe.ingredients.add(
-                      Ingredient(
-                        name: nameController.text.trim(),
-                        category: selectedCategory,
-                        gram: gram,
-                        customPricePerKg: pricePerUnit, // 鸡蛋即单粒价格
-                        unit: selectedUnit,
-                      ),
-                    );
-                  });
-
-                  Navigator.pop(context);
-                },
-                child: const Text(
-                  "Tambah",
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ),
-            ],
           ),
-        );
-      },
-    );
-  }
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Batal", style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF00695C), // Warna hijau gelap sesuai gambar
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () {
+                // LOGIC SIMPAN ASLI ANDA
+                final double gram = double.tryParse(gramController.text.trim()) ?? 0;
+                if (gram <= 0) return;
+
+                double? pricePerUnit = double.tryParse(priceController.text.trim());
+
+                setState(() {
+                  recipe.ingredients.add(
+                    Ingredient(
+                      name: nameController.text.trim(),
+                      category: selectedCategory,
+                      gram: gram,
+                      customPricePerKg: pricePerUnit,
+                      unit: selectedUnit,
+                    ),
+                  );
+                });
+
+                Navigator.pop(context);
+              },
+              child: const Text("Tambah"),
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
 
   void _showAddRecipeDialog() {
     final nameController = TextEditingController();
