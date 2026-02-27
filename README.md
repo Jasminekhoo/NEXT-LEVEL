@@ -51,17 +51,19 @@ Warung Wise is not just a bookkeeping app; it is an **AI-powered survival tool**
 We leveraged Google's ecosystem to build a scalable, intelligent, and seamless application.
 
 ### 🤖 Google AI Technologies
-1. **Gemini 1.5 Flash (Google AI Studio):** Acts as the core "brain" of the app. It is heavily utilized in `gemini_service.dart` as a "senior market price analyst" to evaluate realistic price fluctuations. It also powers the Business Insight generation and assesses financial health.
-2. **Google Cloud Vision API (Architecture):** Designed to handle the initial Optical Character Recognition (OCR) on physically damaged or handwritten receipts before passing the text to Gemini for contextual structuring.
+1. **Gemini 2.5 Flash (Google AI Studio):** Acts as the core "brain" and "eyes" of the app.
+   - **Multimodal Vision:** Instead of traditional OCR, we directly feed receipt images to Gemini 2.5 Flash, which reads messy handwriting and structures the data into a clean JSON format.
+   - **Market Analysis:** Serves as a "senior market price analyst" to evaluate realistic price fluctuations for raw materials.
+   - **Business Insight Generation:** Powers the financial health assessment and interactive charts.
 
 ### 💻 Google Developer Technologies
-1. **Flutter:** Used to build a highly responsive, cross-platform mobile application. We utilized packages like `fl_chart` for dynamic, interactive financial visualizations.
+1. **Flutter:** Used to build a highly responsive, cross-platform mobile application. We utilized packages like `fl_chart` for dynamic, interactive financial visualizations and `speech_to_text` for hands-free operations.
 2. **Firebase (Firestore):** Integrated for scalable backend database management. Configured in `main.dart` to sync transaction records, user data, and generated AI reports securely in the cloud.
 
 ### Core Workflows
-1. **Smart Bookkeeping:** Camera Snap ➔ Cloud Vision OCR ➔ Gemini Structuring ({item, price}) ➔ ReceiptReviewPage (Human-in-the-Loop) ➔ Firestore.
+1. **Smart Bookkeeping:** Camera Snap ➔ Gemini 2.5 Flash (Multimodal JSON Structuring) ➔ ReceiptReviewPage (Human-in-the-Loop) ➔ Firestore.
 
-2. **Voice Ledger:** User Voice ➔ Speech-to-Text ➔ Gemini Parsing ➔ Cross-reference ProfilePage Menu Prices ➔ Auto-update Dashboard.
+2. **Voice Ledger:** User Voice ➔ Speech-to-Text ➔ Smart Regex & NLP Keyword Extraction (Zero-latency local processing) ➔ Auto-calculate Profit Margin ➔ Firestore.
 
 3. **Financial Analysis:** Historical Data Aggregation ➔ Gemini Analysis ➔ Interactive Charts & Loan Simulation (report_page.dart).
 
