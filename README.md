@@ -107,7 +107,16 @@ To run the Warung Wise prototype locally:
     flutter pub get
 4. **Firebase Configuration:**
    The project includes a firebase_options.dart file.
-5. **Run the App:**
+   
+5. **API Key Configuration (Important):**
+   For security reasons, the Gemini API key is not uploaded to GitHub. You need to provide your own API key to run the AI features.
+   * Go to the `lib/` folder and create a new file named `api_config.dart`.
+   * Add the following code and insert your Gemini API Key:
+   ```dart
+   class ApiConfig {
+     static const String geminiApiKey = "YOUR_GEMINI_API_KEY_HERE";
+   }
+6. **Run the App:**
     ```bash
     flutter run
 ---
