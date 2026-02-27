@@ -1,4 +1,4 @@
-# 📱 Warung Wise – Your AI Business Partner （by group NEXT LEVEL)
+# 📱 Warung Wise – Your AI Business Partner 
 
 > **"Empowering Micro-Hawkers. From Invisible to Bankable."**
 
@@ -119,5 +119,11 @@ To run the Warung Wise prototype locally:
 6. **Run the App:**
     ```bash
     flutter run
+---
+👩🏼‍💻 Contributors
+Team NEXT-LEVEL
+🙋🏻‍♀️ CHRIST TING SHIN LING
+🙆🏻‍♀️ JASMINE KHOO JIA CHEE
+🧏🏻‍♀️ WONG ZI QI
 ---
 Built by Group NEXT LEVEL for KitaHack 2026.
