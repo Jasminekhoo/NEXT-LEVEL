@@ -122,8 +122,13 @@ To run the Warung Wise prototype locally:
 ---
 👩🏼‍💻 Contributors
 Team NEXT-LEVEL
-🙋🏻‍♀️ CHRIST TING SHIN LING
-🙆🏻‍♀️ JASMINE KHOO JIA CHEE
-🧏🏻‍♀️ WONG ZI QI
+
+* 🙋🏻‍♀️ CHRIST TING SHIN LING
+
+* 🙆🏻‍♀️ JASMINE KHOO JIA CHEE
+
+* 💁🏻‍♀️ LEE MEI SHUET
+
+* 🧏🏻‍♀️ WONG ZI QI
 ---
 Built by Group NEXT LEVEL for KitaHack 2026.
