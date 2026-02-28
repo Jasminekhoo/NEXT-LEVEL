@@ -16,16 +16,13 @@ class ProfilePage extends StatelessWidget {
         elevation: 0,
         centerTitle: true,
         iconTheme: const IconThemeData(color: Colors.black),
-        //automaticallyImplyLeading: false,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ==============================
-            // 1. warung profile (avatar, name, category)
-            // ==============================
+            // warung profile (avatar, name, category)
             Center(
               child: Column(
                 children: [
@@ -49,9 +46,7 @@ class ProfilePage extends StatelessWidget {
             ),
             const SizedBox(height: 30),
 
-            // ==============================
-            // 2. set init daily target (untung bersih harian)
-            // ==============================
+            // set init daily target (untung bersih harian)
             const Text("Sasaran Harian (Daily Target)", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey)),
             const SizedBox(height: 10),
             Container(
@@ -83,9 +78,7 @@ class ProfilePage extends StatelessWidget {
             ),
             const SizedBox(height: 25),
 
-            // ==============================
-            // 3. set init menu & harga 
-            // ==============================
+            // set init menu & harga 
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -117,9 +110,7 @@ class ProfilePage extends StatelessWidget {
             ),
             const SizedBox(height: 25),
 
-            // ==============================
-            // 4. set init kos tetap (sewa tapak, bil air, dll)
-            // ==============================
+            // set init kos tetap (sewa tapak, bil air, dll)
             const Text("Kos Tetap (Fixed Costs)", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey)),
             const SizedBox(height: 10),
             Container(
@@ -159,7 +150,6 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  // menu item widget builder
   Widget _buildMenuItem(String name, String price) {
     return ListTile(
       title: Text(name, style: const TextStyle(fontWeight: FontWeight.w600)),

@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 
-// ============================================
-// 1. Transaction Model
-// ============================================
+// Transaction Model
 class Transaction {
   final String title;
   final String amount;
@@ -19,9 +17,7 @@ class Transaction {
   });
 }
 
-// ============================================
-// 2. BigCardButton (保持现状)
-// ============================================
+// BigCardButton 
 class BigCardButton extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -75,9 +71,7 @@ class BigCardButton extends StatelessWidget {
   }
 }
 
-// ============================================
-// 3. TransactionTile (🔥 自动换行版 - 绝不截断)
-// ============================================
+// TransactionTile 
 class TransactionTile extends StatelessWidget {
   final String title;
   final String amount;
@@ -119,13 +113,10 @@ class TransactionTile extends StatelessWidget {
             ],
           ),
           child: Row(
-            // 🔥 关键改动：改为 Start 对齐。
-            // 这样如果标题变两行，图标和金额会保持在第一行的高度，不会跑位。
             crossAxisAlignment: CrossAxisAlignment.start, 
             children: [
-              // 1. 图标
               Padding(
-                padding: const EdgeInsets.only(top: 2), // 微调图标位置，对齐文字第一行
+                padding: const EdgeInsets.only(top: 2), 
                 child: Icon(
                   isIncome ? Icons.trending_up : Icons.trending_down,
                   color: isIncome ? successColor : warningColor,
@@ -134,7 +125,6 @@ class TransactionTile extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               
-              // 2. 标题与时间区
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -146,9 +136,8 @@ class TransactionTile extends StatelessWidget {
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                         color: Colors.black87,
-                        height: 1.2, // 适当的行高
+                        height: 1.2, 
                       ),
-                      // 🔥 删掉了 maxLines 和 overflow，让它自由换行
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -162,10 +151,9 @@ class TransactionTile extends StatelessWidget {
                 ),
               ),
 
-              // 3. 金额部分
               const SizedBox(width: 12), 
               Padding(
-                padding: const EdgeInsets.only(top: 2), // 对齐文字第一行
+                padding: const EdgeInsets.only(top: 2), 
                 child: Text(
                   amount,
                   style: TextStyle(

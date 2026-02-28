@@ -3,9 +3,6 @@ import 'package:fl_chart/fl_chart.dart';
 import '../app_colors.dart';
 import 'pdf_preview_page.dart';
 
-// ==========================================
-// 主页面：Laporan & Kredit (Stateless)
-// ==========================================
 class ReportPage extends StatelessWidget {
   const ReportPage({super.key});
 
@@ -24,35 +21,35 @@ class ReportPage extends StatelessWidget {
           children: [
             const SizedBox(height: 20),
             
-            // 1. 信用仪表盘
+            // Credit Dashboard Header
             _buildCreditHeader(),
             const SizedBox(height: 30),
 
-            // 2. Gemini 商业洞察卡片
+            // Gemini Business Insight Card
             _buildAIInsightCard(),
             const SizedBox(height: 30),
 
-            // 3. 财务摘要
+            // Financial Summary
             _buildFinanceSummary(),
             const SizedBox(height: 30),
 
-            // 4. ✨✨ 新增：AI 支出分析饼图 (可互动) ✨✨
+            // AI Expense Analysis Pie Chart
             const ExpensePieChartCard(),
             const SizedBox(height: 30),
 
-            // 5. 双柱状图 (Income vs Expense)
+            // Dual Bar Chart (Income vs Expense)
             const IncomeExpenseChartCard(),
             const SizedBox(height: 40),
 
-            // 6. 交互式贷款模拟器
+            // Interactive Loan Simulator
             const LoanSimulatorCard(),
             const SizedBox(height: 40),
 
-            // 7. 贷款选项 (TEKUN)
+            // Loan Option (TEKUN)
             _buildTekunCard(),
             const SizedBox(height: 30),
 
-            // 8. 下载按钮 (跳转到 PDF)
+            // Download Button (Navigate to PDF)
             _buildDownloadButton(context),
             const SizedBox(height: 20),
           ],
@@ -61,7 +58,6 @@ class ReportPage extends StatelessWidget {
     );
   }
 
-  // --- 模块 1: 信用仪表盘 ---
   Widget _buildCreditHeader() {
     return Column(
       children: [
@@ -91,7 +87,6 @@ class ReportPage extends StatelessWidget {
     );
   }
 
-  // --- 模块 2: AI 洞察卡片 ---
   Widget _buildAIInsightCard() {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -114,7 +109,6 @@ class ReportPage extends StatelessWidget {
     );
   }
 
-  // --- 模块 3: 财务摘要 ---
   Widget _buildFinanceSummary() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -142,7 +136,6 @@ class ReportPage extends StatelessWidget {
     );
   }
 
-  // --- 模块 7: TEKUN 选项 ---
   Widget _buildTekunCard() {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -173,7 +166,6 @@ class ReportPage extends StatelessWidget {
     );
   }
 
-  // --- 模块 8: 下载按钮 ---
   Widget _buildDownloadButton(BuildContext context) { 
     return SizedBox(
       width: double.infinity,
@@ -197,9 +189,6 @@ class ReportPage extends StatelessWidget {
   }
 }
 
-// ==========================================
-// ✨ 模块：AI 支出分析饼图 (StatefulWidget)
-// ==========================================
 class ExpensePieChartCard extends StatefulWidget {
   const ExpensePieChartCard({super.key});
 
@@ -333,9 +322,6 @@ class _ExpensePieChartCardState extends State<ExpensePieChartCard> {
   }
 }
 
-// ==========================================
-// ✨ 模块：Income vs Expense 双柱状图 (StatefulWidget)
-// ==========================================
 class IncomeExpenseChartCard extends StatefulWidget {
   const IncomeExpenseChartCard({super.key});
 
@@ -512,9 +498,7 @@ class _IncomeExpenseChartCardState extends State<IncomeExpenseChartCard> {
   }
 }
 
-// ==========================================
-// ✨ 模块：交互式贷款模拟器 (StatefulWidget)
-// ==========================================
+
 class LoanSimulatorCard extends StatefulWidget {
   const LoanSimulatorCard({super.key});
 

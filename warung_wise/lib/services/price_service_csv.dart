@@ -62,7 +62,7 @@ class PriceServiceCsv {
     String lastYM =
         "${lastMonthDate.year}-${lastMonthDate.month.toString().padLeft(2, '0')}";
 
-    // 下载两个 CSV
+    // download two latest CSV
     final currentResult = await _downloadMonth(currentYM);
     final lastResult = await _downloadMonth(lastYM);
 
@@ -76,19 +76,12 @@ class PriceServiceCsv {
         eol: '\n'
       );
 
-   // final currentRows =
-       // CsvToListConverter().convert(currentResult['content']!, eol: '\n');
 
-    //final lastRows =
-        //CsvToListConverter().convert(lastResult['content']!, eol: '\n');
-
-    // 存储数据
+    // storing data
     Map<int, double> currentLatestPrice = {};
     Map<int, double> lastMonthLowestPrice = {};
 
-    // ===============================
-    // 1️⃣ 当月 → 最新价格
-    // ===============================
+    // latest price for current month
     for (var row in currentRows.skip(1)) {
       if (row.length < 4) continue;
 
@@ -97,15 +90,12 @@ class PriceServiceCsv {
 
       double price = double.tryParse(row[3].toString()) ?? 0.0;
 
-      // 只记录第一条（CSV 通常最新在前）
       if (!currentLatestPrice.containsKey(itemCode)) {
         currentLatestPrice[itemCode] = price;
       }
     }
 
-    // ===============================
-    // 2️⃣ 上个月 → 最低价格
-    // ===============================
+    // lowest price for last month
     for (var row in lastRows.skip(1)) {
       if (row.length < 4) continue;
 
@@ -123,9 +113,6 @@ class PriceServiceCsv {
       }
     }
 
-    // ===============================
-    // 3️⃣ 生成 PriceRecord
-    // ===============================
     final List<PriceRecord> results = [];
 
     currentLatestPrice.forEach((itemCode, currentPrice) {
@@ -135,8 +122,8 @@ class PriceServiceCsv {
       results.add(
         PriceRecord(
           itemName: itemLookup[itemCode]!['name']!,
-          oldPrice: oldPrice,          // 上个月最低
-          newPrice: currentPrice,      // 当月最新
+          oldPrice: oldPrice,          
+          newPrice: currentPrice,      
           history: [oldPrice, currentPrice],
           unit: "unit",
           date: DateTime.now().toString(),
@@ -182,10 +169,10 @@ class PriceServiceCsv {
       return {'content': response.body, 'ym': ym};
     }
   } catch (e) {
-    debugPrint("下载 $ym 失败: $e");
+    debugPrint("Download $ym fail: $e");
   }
 
-  throw Exception("$ym CSV 数据获取失败");
+  throw Exception("$ym CSV data retrieval failed");
 }
 
   Future<void> _clearOldCache(Directory dir, String currentFileName) async {
@@ -219,7 +206,6 @@ class PriceServiceCsv {
     final List<PriceRecord> results = [];
 
     grouped.forEach((itemCode, list) {
-      // 日期降序取最新一条
       list.sort((a, b) => b['date'].toString().compareTo(a['date'].toString()));
       final latest = list.first;
       double latestPrice = (latest['price'] as num).toDouble();
@@ -238,7 +224,6 @@ class PriceServiceCsv {
     return results;
   }
 
-  // 格式化月份为马来文（可选保留）
   String formatMonthMalay(String ym) {
     try {
       final parts = ym.split('-');

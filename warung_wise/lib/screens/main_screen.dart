@@ -17,19 +17,18 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
 
-  // 1. 普通的底部 Tab 切换
+  // Tab switching
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
     });
   }
 
-  // 🔥 2. 高级版：模拟 AI 扫描过程 (Loading -> 跳转)
+  // Simulate AI Scanning Process (Loading → Navigate)
   void _startScanProcess() {
-    // A. 弹出 Loading 对话框
     showDialog(
       context: context,
-      barrierDismissible: false, // 用户不能点背景关闭
+      barrierDismissible: false, 
       builder: (BuildContext context) {
         return Dialog(
           backgroundColor: Colors.white,
@@ -39,13 +38,11 @@ class _MainScreenState extends State<MainScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // 旋转的圈圈
                 const CircularProgressIndicator(
                   color: AppColors.jungleGreen, 
                   strokeWidth: 6,
                 ),
                 const SizedBox(height: 25),
-                // 提示文字
                 const Text(
                   "Gemini sedang menganalisa...", 
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.jungleGreen),
@@ -62,12 +59,8 @@ class _MainScreenState extends State<MainScreen> {
       },
     );
 
-    // B. 延迟 2秒 后跳转
     Timer(const Duration(seconds: 2), () {
-      // 1. 关掉弹窗
       Navigator.of(context).pop();
-      
-      // 2. 切换到 AI 页面
       setState(() {
         _selectedIndex = 1; 
       });
@@ -76,7 +69,6 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // 3. 把 _startScanProcess 传给 Dashboard
     final List<Widget> pages = [
       DashboardPage(onScanTap: _startScanProcess),  
       const AiAnalysisPage(),

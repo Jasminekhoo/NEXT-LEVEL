@@ -1,10 +1,10 @@
 class Ingredient {
   String name;
   String category;
-  double gram; // 对于 biji，存数量；对 kg/g，存重量
+  double gram;
   double? customPricePerKg;
-  String unit; // 'biji', 'g', 'kg'
-  double? unitWeightGram; // 每个单位重量（biji专用）
+  String unit;
+  double? unitWeightGram;
 
   Ingredient({
     required this.name,

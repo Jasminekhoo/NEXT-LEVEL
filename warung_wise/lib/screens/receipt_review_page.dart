@@ -21,11 +21,8 @@ class _ReceiptReviewPageState extends State<ReceiptReviewPage> {
     _items = List.from(widget.extractedItems);
   }
 
-  // ==========================================
-  // 🟢 核心修改：确认并保存数据到 Firebase (支持历史追踪)
-  // ==========================================
+  // Confirm and Save Data to Firebase (Supports Historical Tracking)
   Future<void> _confirmData() async {
-    // 1. 显示加载圈，防止用户重复点击
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -34,19 +31,18 @@ class _ReceiptReviewPageState extends State<ReceiptReviewPage> {
 
     try {
       final firestore = fs.FirebaseFirestore.instance;
-      // 使用 WriteBatch 提高效率，确保所有数据要么全部成功，要么全部失败
       final batch = firestore.batch();
 
       for (var item in _items) {
-        // A. 提取价格数字 (去掉 "RM" 等非数字字符)
+        // Extract price value (remove "RM" and other non-numeric characters)
         double priceNum =
             double.tryParse(item.price.replaceAll(RegExp(r'[^0-9.]'), '')) ??
             0.0;
 
         String ingredientId = item.name.trim().toLowerCase();
 
-        // B. 🚀 更新 'ingredient_prices' (当前单价快照)
-        // 这里的目的是为了让 RecipePage 能直接拿到最新单价
+        // Update 'ingredient_prices' (current unit price snapshot)
+        // The purpose is to allow RecipePage to directly retrieve the latest unit price
         var currentPriceRef = firestore
             .collection('ingredient_prices')
             .doc(ingredientId);
@@ -56,20 +52,20 @@ class _ReceiptReviewPageState extends State<ReceiptReviewPage> {
           'lastUpdated': fs.FieldValue.serverTimestamp(),
         }, fs.SetOptions(merge: true));
 
-        // C. 🚀 追加到 'price_history' (价格历史流水)
-        // 这里的目的是为了可追踪性 (Traceable)，记录每一次价格变动
+        // Append to 'price_history' (price change log)
+        // The purpose is to ensure traceability by recording every price change
         var historyRef = firestore
             .collection('price_history')
-            .doc(); // 自动生成随机 ID
+            .doc(); 
         batch.set(historyRef, {
-          'ingredientId': ingredientId, // 关联 ID
+          'ingredientId': ingredientId, 
           'name': item.name.trim(),
           'price': priceNum,
           'timestamp': fs.FieldValue.serverTimestamp(),
-          'source': 'AI_Scan', // 标记来源
+          'source': 'AI_Scan',
         });
 
-        // D. 🚀 记录到 'transactions' (财务账目流水)
+        // Record in 'transactions' (financial transaction log)
         var transactionRef = firestore.collection('transactions').doc();
         batch.set(transactionRef, {
           'title': "Beli ${item.name}",
@@ -79,24 +75,22 @@ class _ReceiptReviewPageState extends State<ReceiptReviewPage> {
         });
       }
 
-      // 提交所有写入操作
+      
       await batch.commit();
 
       if (!mounted) return;
-      Navigator.pop(context); // 关闭加载圈
+      Navigator.pop(context); 
 
-      // 成功后提示用户
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("Data berjaya disinkronkan ke Firebase! ✅"),
         ),
       );
 
-      // 带着数据返回 Dashboard 更新 UI
       Navigator.pop(context, _items);
     } catch (e) {
       if (!mounted) return;
-      Navigator.pop(context); // 关闭加载圈
+      Navigator.pop(context); 
       debugPrint("Firebase Error: $e");
 
       ScaffoldMessenger.of(
@@ -105,9 +99,6 @@ class _ReceiptReviewPageState extends State<ReceiptReviewPage> {
     }
   }
 
-  // ==========================================
-  // ➕ Tambah Item
-  // ==========================================
   void _addNewItem() {
     setState(() {
       _items.add(
@@ -131,15 +122,12 @@ class _ReceiptReviewPageState extends State<ReceiptReviewPage> {
           ),
         ),
         iconTheme: const IconThemeData(color: Colors.white),
-        elevation: 1, // 阴影轻一点，看起来更干净
+        elevation: 1,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            // ==========================================
-            // 🧾 Extracted Items List
-            // ==========================================
             Expanded(
               child: ListView.builder(
                 itemCount: _items.length,
@@ -154,7 +142,6 @@ class _ReceiptReviewPageState extends State<ReceiptReviewPage> {
                     padding: const EdgeInsets.symmetric(vertical: 6),
                     child: Row(
                       children: [
-                        // Name TextField with white background
                         Expanded(
                           flex: 3,
                           child: TextField(
@@ -164,7 +151,7 @@ class _ReceiptReviewPageState extends State<ReceiptReviewPage> {
                             },
                             decoration: InputDecoration(
                               filled: true,
-                              fillColor: Colors.white, // 白色背景
+                              fillColor: Colors.white, 
                               border: const OutlineInputBorder(),
                               isDense: true,
                               contentPadding: const EdgeInsets.symmetric(
@@ -175,7 +162,6 @@ class _ReceiptReviewPageState extends State<ReceiptReviewPage> {
                           ),
                         ),
                         const SizedBox(width: 10),
-                        // Price TextField with white background
                         Expanded(
                           flex: 2,
                           child: TextField(
@@ -187,7 +173,7 @@ class _ReceiptReviewPageState extends State<ReceiptReviewPage> {
                             },
                             decoration: InputDecoration(
                               filled: true,
-                              fillColor: Colors.white, // 白色背景
+                              fillColor: Colors.white,
                               border: const OutlineInputBorder(),
                               isDense: true,
                               contentPadding: const EdgeInsets.symmetric(
@@ -198,7 +184,6 @@ class _ReceiptReviewPageState extends State<ReceiptReviewPage> {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        // Delete Button
                         InkWell(
                           onTap: () {
                             setState(() {
@@ -216,9 +201,6 @@ class _ReceiptReviewPageState extends State<ReceiptReviewPage> {
 
             const SizedBox(height: 10),
 
-            // ==========================================
-            // ➕ Tambah Item 按钮
-            // ==========================================
             Align(
               alignment: Alignment.centerRight,
               child: TextButton.icon(
@@ -236,9 +218,6 @@ class _ReceiptReviewPageState extends State<ReceiptReviewPage> {
 
             const SizedBox(height: 16),
 
-            // ==========================================
-            // 🟢 Confirm Button
-            // ==========================================
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(

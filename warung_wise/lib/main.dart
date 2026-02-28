@@ -27,17 +27,11 @@ class WarungWiseApp extends StatelessWidget {
         useMaterial3: true,
         fontFamily: 'Roboto',
       ),
-      // MainScreen
       home: const MainScreen(),
     );
   }
 }
 
-// ========================================================
-// Firebase 测试代码 (FirebaseTestScreen)
-// if需要测试，只要把上面的 home: const MainScreen()
-// 改成 home: const FirebaseTestScreen() 就可以了
-// ========================================================
 class FirebaseTestScreen extends StatelessWidget {
   const FirebaseTestScreen({super.key});
 

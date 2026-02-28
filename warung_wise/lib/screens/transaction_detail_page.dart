@@ -22,7 +22,6 @@ class TransactionDetailPage extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            // 1. 状态图标
             const SizedBox(height: 20),
             Icon(
               Icons.check_circle, 
@@ -36,7 +35,6 @@ class TransactionDetailPage extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             
-            // 2. 巨大金额
             Text(
               transaction.amount,
               style: TextStyle(
@@ -47,7 +45,6 @@ class TransactionDetailPage extends StatelessWidget {
             ),
             const SizedBox(height: 40),
 
-            // 3. 详细信息卡片
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -57,22 +54,21 @@ class TransactionDetailPage extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  _buildDetailRow("Perkara", transaction.title), // 事项
+                  _buildDetailRow("Perkara", transaction.title), 
                   const Divider(height: 30),
-                  _buildDetailRow("Tarikh", transaction.date),   // 日期
+                  _buildDetailRow("Tarikh", transaction.date),   
                   const Divider(height: 30),
-                  _buildDetailRow("Masa", transaction.time),     // 时间
+                  _buildDetailRow("Masa", transaction.time),     
                   const Divider(height: 30),
-                  _buildDetailRow("Kategori", transaction.isIncome ? "Jualan" : "Kos Bahan"), // 分类
+                  _buildDetailRow("Kategori", transaction.isIncome ? "Jualan" : "Kos Bahan"), 
                   const Divider(height: 30),
-                  _buildDetailRow("Status", "Selesai (Verified by AI)"), // 状态
+                  _buildDetailRow("Status", "Selesai (Verified by AI)"), 
                 ],
               ),
             ),
 
             const SizedBox(height: 30),
 
-            // 4. 收据图片 (模拟如果有的话)
             if (!transaction.isIncome) ...[
                const Align(
                  alignment: Alignment.centerLeft,

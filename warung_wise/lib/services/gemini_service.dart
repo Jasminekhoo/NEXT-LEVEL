@@ -16,7 +16,6 @@ class GeminiService {
       "https://generativelanguage.googleapis.com/v1beta/models/$modelName:generateContent?key=$_apiKey",
     );
 
-    // 稍微调整 Prompt，明确叫它不要在思考后废话
     final promptText = """
 User: You are a market analyst. 
 Item: $itemName, Category: $category, Last Price: RM $lastPrice.
@@ -35,13 +34,13 @@ Assistant:
       ],
       "generationConfig": {
         "temperature": 0.1,
-        "maxOutputTokens": 200, // 👈 重要：增加到 200，防止被 thoughts 占满
+        "maxOutputTokens": 200, 
         "topP": 0.95,
       }
     };
 
     try {
-      print("📡 发送请求至 Gemini 2.5 Flash...");
+      print("📡 Request sent to Gemini 2.5 Flash...");
       final response = await http.post(
         url,
         headers: {"Content-Type": "application/json"},
@@ -49,27 +48,25 @@ Assistant:
       );
 
       if (response.statusCode != 200) {
-        print("❌ 错误: ${response.body}");
+        print("❌ error: ${response.body}");
         return null;
       }
 
       final Map<String, dynamic> data = jsonDecode(response.body);
       
-      // 检查是否有内容
+      // Validating response content
       final candidates = data['candidates'] as List?;
       if (candidates == null || candidates.isEmpty) return null;
 
       final content = candidates[0]['content'];
       if (content == null || content['parts'] == null) {
-        // 如果没有 parts，可能是被 thoughts 阻塞了
-        print("⚠️ 响应中没有 parts。原因: ${candidates[0]['finishReason']}");
+        print("⚠️ Response contains no "parts" field. Possible cause: ${candidates[0]['finishReason']}");
         return null;
       }
 
       final String? aiText = content['parts'][0]['text'];
       if (aiText != null) {
-        print("🤖 AI 返回: ${aiText.trim()}");
-        // 提取数字
+        print("🤖 AI response: ${aiText.trim()}");
         final match = RegExp(r'(\d+(\.\d+)?)').firstMatch(aiText);
         if (match != null) {
           return double.tryParse(match.group(0)!);
@@ -77,7 +74,7 @@ Assistant:
       }
       return null;
     } catch (e) {
-      print("❌ 异常: $e");
+      print("❌ error: $e");
       return null;
     }
   }
@@ -176,9 +173,7 @@ Rules:
     }
   }
 
-  // =====================================================
   // Helpers
-  // =====================================================
   static String _stripCodeFences(String s) {
     return s
         .replaceAll(RegExp(r"^```(?:json)?\s*", multiLine: true), "")

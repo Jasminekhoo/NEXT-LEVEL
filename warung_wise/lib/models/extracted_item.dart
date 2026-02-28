@@ -1,6 +1,6 @@
 class ExtractedItem {
   final String name;
-  final String price; // e.g. "RM 18.50"
+  final String price; 
   final DateTime date;
 
   ExtractedItem({required this.name, required this.price, required this.date});

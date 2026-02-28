@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../app_colors.dart'; // 确保路径正确
+import '../app_colors.dart';
 
 class PdfPreviewPage extends StatelessWidget {
   const PdfPreviewPage({super.key});
@@ -7,7 +7,7 @@ class PdfPreviewPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[200], // 模拟看 PDF 时的灰色背景
+      backgroundColor: Colors.grey[200],
       appBar: AppBar(
         title: const Text("Pratonton Dokumen (TEKUN)", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         backgroundColor: AppColors.jungleGreen,
@@ -17,7 +17,6 @@ class PdfPreviewPage extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.share),
             onPressed: () {
-              // 模拟分享功能
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Laporan berjaya dikongsi ke WhatsApp!')),
               );
@@ -29,7 +28,6 @@ class PdfPreviewPage extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            // 模拟一张 A4 纸
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(30),
@@ -42,7 +40,7 @@ class PdfPreviewPage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 报表头部 (Header)
+                  //Header
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -67,7 +65,7 @@ class PdfPreviewPage extends StatelessWidget {
                   
                   const Divider(height: 40, thickness: 2),
 
-                  // 商家信息
+                  // Hawker's info
                   const Center(
                     child: Text("PENYATA UNTUNG RUGI (PROFIT & LOSS)", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, decoration: TextDecoration.underline)),
                   ),
@@ -78,7 +76,7 @@ class PdfPreviewPage extends StatelessWidget {
 
                   const SizedBox(height: 30),
 
-                  // 财务数据表格
+                  // Financial data table
                   const Text("Ringkasan Kewangan", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                   const SizedBox(height: 10),
                   Table(
@@ -97,7 +95,7 @@ class PdfPreviewPage extends StatelessWidget {
 
                   const SizedBox(height: 50),
 
-                  // 底部签名与 AI 认证
+                  // signature
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     crossAxisAlignment: CrossAxisAlignment.end,
@@ -121,16 +119,15 @@ class PdfPreviewPage extends StatelessWidget {
                 ],
               ),
             ),
-            
+          
             const SizedBox(height: 20),
             
-            // 底部操作按钮
             SizedBox(
               width: double.infinity,
               height: 50,
               child: ElevatedButton.icon(
                 onPressed: () {
-                  Navigator.pop(context); // 返回上一页
+                  Navigator.pop(context); 
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('PDF dimuat turun ke peranti anda.')),
                   );
@@ -149,7 +146,6 @@ class PdfPreviewPage extends StatelessWidget {
     );
   }
 
-  // 辅助方法：构建信息行
   Widget _buildInfoRow(String title, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -162,7 +158,6 @@ class PdfPreviewPage extends StatelessWidget {
     );
   }
 
-  // 辅助方法：构建表格行
   TableRow _buildTableRow(String title, String value, {bool isHeader = false, bool isBold = false, Color? textColor}) {
     return TableRow(
       decoration: BoxDecoration(color: isHeader ? Colors.grey.shade100 : Colors.white),

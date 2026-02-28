@@ -32,7 +32,7 @@ class _AiAnalysisPageState extends State<AiAnalysisPage>
   ];
 
   String _selectedCategory = "";
-  bool _isCancelled = false; // 🔴 新增：用于取消标志
+  bool _isCancelled = false;
 
   Map<String, List<PriceRecord>> _getGroupedPrices() {
     Map<String, List<PriceRecord>> grouped = {};
@@ -53,7 +53,6 @@ class _AiAnalysisPageState extends State<AiAnalysisPage>
     "Memuatkan harga semasa...",
   );
 
-  // 🔴 整合版：包含 Batal 按钮的对话框
   Future<void> _showLoadingDialog() async {
     showDialog(
       context: context,
@@ -65,7 +64,7 @@ class _AiAnalysisPageState extends State<AiAnalysisPage>
           child: Center(
             child: Container(
               padding: const EdgeInsets.all(24),
-              width: 240, // 稍微加宽一点以适应按钮
+              width: 240, 
               decoration: BoxDecoration(
                 color: AppColors.offWhite,
                 borderRadius: BorderRadius.circular(20),
@@ -113,7 +112,7 @@ class _AiAnalysisPageState extends State<AiAnalysisPage>
                     ),
                   ),
                   const SizedBox(height: 20),
-                  // 🔴 BATAL BUTTON
+                  // BATAL BUTTON
                   TextButton(
                     onPressed: () {
                       _isCancelled = true;
@@ -145,7 +144,7 @@ class _AiAnalysisPageState extends State<AiAnalysisPage>
   @override
   void initState() {
     super.initState();
-    _isCancelled = false; // 初始化重置
+    _isCancelled = false; 
     _selectedCategory = _categories.first['id']!;
     _controller = AnimationController(
       duration: const Duration(milliseconds: 1500),
@@ -204,7 +203,6 @@ class _AiAnalysisPageState extends State<AiAnalysisPage>
   setState(() => _isLoading = true);
 
   try {
-    // 1. 并发获取 Firebase 和 CSV 数据，提高加载速度
     final results = await Future.wait([
       fs.FirebaseFirestore.instance.collection('ingredient_prices').get(),
       _priceService.getLatestPrices(),
@@ -215,7 +213,6 @@ class _AiAnalysisPageState extends State<AiAnalysisPage>
     final fs.QuerySnapshot firebaseSnapshot = results[0] as fs.QuerySnapshot;
     final List<PriceRecord> csvData = results[1] as List<PriceRecord>;
 
-    // 建立查找映射
     final Map<String, dynamic> firebasePriceMap = {
       for (var doc in firebaseSnapshot.docs) doc.id: doc.data(),
     };
@@ -226,7 +223,7 @@ class _AiAnalysisPageState extends State<AiAnalysisPage>
     List<PriceRecord> finalList = [];
     final entries = PriceServiceCsv.itemLookup.entries.toList();
     int aiCallCount = 0;
-    const int maxAiCalls = 5; // 限制 AI 预测数量，避免消耗过多 Token 或等待太久
+    const int maxAiCalls = 5; 
 
     for (var entry in entries) {
       if (_isCancelled) return;
@@ -235,10 +232,8 @@ class _AiAnalysisPageState extends State<AiAnalysisPage>
       final String category = entry.value['cat']!;
       final String lookupKey = itemName.trim().toLowerCase();
       
-      // 获取该物品在 CSV 中的记录
       PriceRecord? csvRecord = csvMap[itemName];
       
-      // 确定基础价格 (由旧至新尝试: CSV旧价 -> 硬编码默认价)
       double basePrice = (csvRecord?.oldPrice ?? 0) > 0 ? csvRecord!.oldPrice : 0;
       if (basePrice <= 0) {
         if (category.contains("Daging")) basePrice = 14.50;
@@ -251,9 +246,7 @@ class _AiAnalysisPageState extends State<AiAnalysisPage>
       String dateLabel;
       bool isAi = false;
 
-      // ==========================================================
-      // 优先级 1: FIREBASE (真实的、用户/管理员手动更新的数据)
-      // ==========================================================
+      // 1st : using firebase
       if (firebasePriceMap.containsKey(lookupKey)) {
         currentPrice = (firebasePriceMap[lookupKey]['pricePerKg'] as num).toDouble();
         var ts = firebasePriceMap[lookupKey]['lastUpdated'];
@@ -262,31 +255,24 @@ class _AiAnalysisPageState extends State<AiAnalysisPage>
             : "Dikemas kini baru-baru ini";
         isAi = false;
       } 
-      // ==========================================================
-      // 优先级 2: CSV (政府公布的最新的本月市场价)
-      // ==========================================================
+      // 2nd : using data from KPDN
       else if (csvRecord != null && csvRecord.newPrice > 0) {
         currentPrice = csvRecord.newPrice;
-        dateLabel = "Data Pasaran KPDN"; // 标记为政府数据
+        dateLabel = "Data Pasaran KPDN"; 
         isAi = false;
       }
-      // ==========================================================
-      // 优先级 3: GEMINI (当 Firebase 和 CSV 都没有新数据时，进行预测)
-      // ==========================================================
+      // 3rd : using Gemini
       else if (aiCallCount < maxAiCalls) {
         currentPrice = await getAiSuggestedPrice(itemName, basePrice, category);
         aiCallCount++;
         dateLabel = "Ramalan AI Gemini";
         isAi = true;
-        // 小延迟避免并发过高触发 API 限制
         await Future.delayed(const Duration(milliseconds: 300));
       } 
-      // ==========================================================
-      // 兜底: 逻辑波动 (最后没办法了才用逻辑计算)
-      // ==========================================================
+      // if all fail then use this
       else {
         final random = Random(itemName.hashCode);
-        double fluctuation = (random.nextDouble() * 0.10) + 1.02; // 随机涨 2-12%
+        double fluctuation = (random.nextDouble() * 0.10) + 1.02; 
         currentPrice = double.parse((basePrice * fluctuation).toStringAsFixed(2));
         dateLabel = "Anggaran Pasaran";
         isAi = false;

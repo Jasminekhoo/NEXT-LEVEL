@@ -56,9 +56,6 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          // ==============================
-          // 1. 顶部总结卡片 (现在是动态计算的！)
-          // ==============================
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
@@ -76,20 +73,18 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
                   children: [
                     const Text("Jumlah Jualan", style: TextStyle(color: Colors.white70)),
                     const SizedBox(height: 5),
-                    // 🔥 显示计算后的 Sales
                     Text(
                       "+ RM ${totalSales.toStringAsFixed(2)}", 
                       style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)
                     ),
                   ],
                 ),
-                Container(height: 40, width: 1, color: Colors.white24), // 分割线
+                Container(height: 40, width: 1, color: Colors.white24), 
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text("Jumlah Kos", style: TextStyle(color: Colors.white70)),
                     const SizedBox(height: 5),
-                    // 🔥 显示计算后的 Cost
                     Text(
                       "- RM ${totalCost.toStringAsFixed(2)}", 
                       style: const TextStyle(color: AppColors.lightOrange, fontSize: 20, fontWeight: FontWeight.bold)
@@ -104,9 +99,6 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
           const Text("Hari Ini", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.grey)),
           const SizedBox(height: 10),
 
-          // ==============================
-          // 2. 今天的动态数据 (From Dashboard)
-          // ==============================
           ...widget.transactions.map((tx) => Padding(
             padding: const EdgeInsets.only(bottom: 10),
             child: TransactionTile(
@@ -126,9 +118,6 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
           const Text("Semalam (Yesterday)", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.grey)),
           const SizedBox(height: 10),
 
-          // ==============================
-          // 3. 历史假数据 (静态展示)
-          // ==============================
           TransactionTile(
             title: "Jual Nasi Lemak (80 pax)", 
             amount: "+ RM 240.00", 
@@ -169,7 +158,6 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
     );
   }
 
-  // 辅助函数：快速跳转到详情页 (针对假数据)
   void _goToDetail(BuildContext context, String title, String amount, bool isIncome, String date, String time) {
     Navigator.push(context, MaterialPageRoute(builder: (_) => TransactionDetailPage(
       transaction: Transaction(title: title, amount: amount, isIncome: isIncome, date: date, time: time)

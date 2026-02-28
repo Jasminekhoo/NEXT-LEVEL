@@ -4,10 +4,10 @@ class PriceRecord {
   final double newPrice;
   final List<double> history; // last 5 price points
   final String unit;
-  final String date; // 原始日期 yyyy-MM-dd
+  final String date; // yyyy-MM-dd
   final String category;
-  double? aiSuggestedPrice; // AI Gemini 给的价格
-  bool isAiPrice = false;   // 是否是 AI 生成
+  double? aiSuggestedPrice; 
+  bool isAiPrice = false; 
 
   PriceRecord({
     required this.itemName,
@@ -21,7 +21,6 @@ class PriceRecord {
     this.isAiPrice = false,
   });
 
-  // ------------------ 工厂方法 ------------------
   factory PriceRecord.fromJson(Map<String, dynamic> json) {
     return PriceRecord(
       itemName: (json['item'] ?? 'Barangan').toString().trim(),
@@ -36,7 +35,7 @@ class PriceRecord {
     );
   }
 
-  // ------------------ 是否有最近三个月数据 ------------------
+  // check if have past 3 months data
   bool get hasRecentData {
     if (date.isEmpty) return false;
     try {
@@ -47,13 +46,11 @@ class PriceRecord {
       return false;
     }
   }
-
-  // ------------------ 显示价格 ------------------
+ 
   double get displayPrice {
     return hasRecentData ? newPrice : (aiSuggestedPrice ?? newPrice);
   }
 
-  // ------------------ 价格来源 ------------------
   String get priceSource {
     return hasRecentData ? "Pasaran" : "AI Gemini";
   }

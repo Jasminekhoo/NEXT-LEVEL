@@ -17,7 +17,7 @@ class RecipePage extends StatefulWidget {
 class _RecipePageState extends State<RecipePage> {
   // ---------------- SAMPLE RECIPES ----------------
   final List<Recipe> recipes = [
-    // 1. Nasi Lemak Biasa (RM 3.00)
+    // 1. Nasi Lemak Biasa (RM6.00)
     Recipe(
       name: "Nasi Lemak Biasa",
       ingredients: [
@@ -35,18 +35,18 @@ class _RecipePageState extends State<RecipePage> {
           name: "Telur Ayam Gred B (10biji)",
           category: "Daging & Telur",
           gram: 50,
-        ), // 半颗蛋约50g
+        ), 
         Ingredient(name: "Timun (1kg)", category: "Sayur", gram: 20),
         Ingredient(name: "Ikan Bilis", category: "Daging & Telur", gram: 10),
         Ingredient(
           name: "Bawang Merah India (1kg)",
           category: "Sayur",
           gram: 15,
-        ), // 用于sambal
+        ), 
       ],
     ),
 
-    // 2. Nasi Lemak Ayam (RM 6.50)
+    // 2. Nasi Lemak Ayam (RM 7.00)
     Recipe(
       name: "Nasi Lemak Ayam",
       ingredients: [
@@ -70,11 +70,11 @@ class _RecipePageState extends State<RecipePage> {
           name: "Minyak Masak (1kg) - Buruh",
           category: "Keperluan",
           gram: 20,
-        ), // 炸鸡耗油
+        ), 
       ],
     ),
 
-    // 3. Teh O Ais (RM 2.00)
+    // 3. Teh O Ais (RM 1.00)
     Recipe(
       name: "Teh O Ais",
       ingredients: [
@@ -88,11 +88,11 @@ class _RecipePageState extends State<RecipePage> {
           name: "Limau Nipis (1kg)",
           category: "Buah",
           gram: 10,
-        ), // 可选：Teh O Ais Limau
+        ), 
       ],
     ),
 
-    // 4. Kuih Muih (1 Keping) (RM 0.50)
+    // 4. Kuih Muih (1 Keping) (RM 1.00)
     Recipe(
       name: "Kuih Muih",
       ingredients: [
@@ -115,7 +115,7 @@ class _RecipePageState extends State<RecipePage> {
     ),
   ];
 
-  // ---------------- REAL PRICE LOOKUP ----------------
+  // Real price look up
   double getPriceFromLookup(String name, [String? category]) {
     try {
       final match = PriceServiceCsv.itemLookup.entries.firstWhere(
@@ -142,8 +142,6 @@ class _RecipePageState extends State<RecipePage> {
     }
   }
 
-  // ---------------- COST CALCULATION ----------------
-  // 计算单份食材成本 + 加上利润率得到售价
   double calculateRecipeCost(Recipe recipe, {double profitMargin = 0.3}) {
     double totalCost = 0;
 
@@ -152,11 +150,9 @@ class _RecipePageState extends State<RecipePage> {
           ingredient.customPricePerKg ?? getPriceFromLookup(ingredient.name);
       double cost = 0;
 
-      // 按单位计算
       switch (ingredient.unit.toLowerCase()) {
         case 'biji':
-          // 每个重量换算 kg，再乘价格
-          double unitWeightGram = ingredient.unitWeightGram ?? 50; // 默认每个 50g
+          double unitWeightGram = ingredient.unitWeightGram ?? 50; // 50g for 1 egg
           cost = ingredient.gram * pricePerKg * (unitWeightGram / 1000);
           break;
         case 'g':
@@ -176,15 +172,12 @@ class _RecipePageState extends State<RecipePage> {
     return (totalCost * (1 + profitMargin)).ceilToDouble();
   }
 
-  // ---------------- DELETE INGREDIENT ----------------
-
   void deleteIngredient(Recipe recipe, int index) {
     setState(() {
       recipe.ingredients.removeAt(index);
     });
   }
 
-  // ---------------- ADD INGREDIENT ----------------
   void _showAddIngredientDialog(Recipe recipe) {
   final nameController = TextEditingController();
   final gramController = TextEditingController();
@@ -446,7 +439,6 @@ class _RecipePageState extends State<RecipePage> {
     );
   }
 
-  // ---------------- UI ----------------
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -479,7 +471,6 @@ class _RecipePageState extends State<RecipePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 删除整个 recipe
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -508,7 +499,7 @@ class _RecipePageState extends State<RecipePage> {
 
                   const SizedBox(height: 10),
 
-                  // ⚡ ingredient 可编辑，价格显示按 portion
+                  // editable ingredient fields
                   ...recipe.ingredients.asMap().entries.map((entry) {
                     int i = entry.key;
                     Ingredient ing = entry.value;
@@ -517,7 +508,6 @@ class _RecipePageState extends State<RecipePage> {
                         ing.customPricePerKg ??
                         getPriceFromLookup(ing.name, ing.category);
 
-                    // 计算 portion 成本
                     double portionCost;
                     String unitLabel;
 
@@ -535,7 +525,6 @@ class _RecipePageState extends State<RecipePage> {
                     return Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        // 1. 名称 (自动占据剩余空间)
                         Expanded(
                           flex: 3,
                           child: TextFormField(
@@ -550,7 +539,6 @@ class _RecipePageState extends State<RecipePage> {
 
                         const SizedBox(width: 8),
 
-                        // 2. 重量/数量 (靠右对齐)
                         Expanded(
                           flex: 2,
                           child: TextFormField(
@@ -574,19 +562,17 @@ class _RecipePageState extends State<RecipePage> {
 
                         const SizedBox(width: 8),
 
-                        // 3. 价格 (核心修改：手动拼接 RM 以实现完美粘合)
                         Expanded(
                           flex: 2,
                           child: Row(
                             mainAxisAlignment:
-                                MainAxisAlignment.end, // 关键：让内部组件整体靠右
+                                MainAxisAlignment.end,
                             children: [
                               const Text(
                                 "RM ",
                                 style: TextStyle(fontSize: 14),
-                              ), // 固定不动的 RM
+                              ),
                               IntrinsicWidth(
-                                // 关键：让输入框宽度随数字长度自动伸缩
                                 child: TextFormField(
                                   key: ValueKey(
                                     "cost_${ing.name}_$portionCost",
@@ -597,7 +583,7 @@ class _RecipePageState extends State<RecipePage> {
                                         decimal: true,
                                       ),
                                   textAlign:
-                                      TextAlign.left, // 这里用 left，因为它已经靠右站了
+                                      TextAlign.left,
                                   decoration: const InputDecoration(
                                     border: InputBorder.none,
                                     isDense: true,
@@ -621,7 +607,6 @@ class _RecipePageState extends State<RecipePage> {
                           ),
                         ),
 
-                        // 4. 删除按钮
                         IconButton(
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
@@ -659,7 +644,6 @@ class _RecipePageState extends State<RecipePage> {
         },
       ),
 
-      // FloatingActionButton 添加 recipe
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddRecipeDialog,
         backgroundColor: AppColors.lightOrange,
